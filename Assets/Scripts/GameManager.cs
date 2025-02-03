@@ -17,15 +17,16 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        if (string.IsNullOrEmpty(authManager.GetToken()))
+        string token = authManager.GetToken();
+
+        if (string.IsNullOrEmpty(token))
         {
-            Debug.Log("No hi ha cap token. Redirigint al login.");
-            SceneManager.LoadScene("Auth");
+            Debug.Log("No hi ha cap token. Mostrant pantalla de login.");
+            authManager.uiManager.ShowPanel(authManager.loginPage); // Mostrar el login en lugar de redirigir
         }
         else
         {
             Debug.Log("Token trobat. L'usuari està logejat.");
         }
     }
-
 }
