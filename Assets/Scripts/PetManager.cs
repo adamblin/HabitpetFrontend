@@ -1,14 +1,29 @@
+using System;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 using System.Collections;
 
+
+[Serializable]
+public class PetData
+{
+    public string id;
+    public string name;
+    public int hungryness;
+    public int cleanliness;
+    public string[] accessories;
+}
 public class PetManager : MonoBehaviour
 {
     public InputField petNameInput;
     public UIManager uiManager;
     public AuthManager authManager;
-   
+    public Text petNameText;
+    public Slider hungrynessSlider;
+    public Slider cleanlinessSlider;
+
+
 
     private string baseUrl = "http://localhost:8080/users"; // La misma URL de IntelliJ
 
@@ -74,4 +89,63 @@ public class PetManager : MonoBehaviour
             Debug.LogError($"Respuesta del servidor: {request.downloadHandler.text}");
         }
     }
+    public void FetcthPet()
+    {
+        StartCoroutine(GetPet());
+    }
+
+    private IEnumerator GetPet()
+    {
+        string token = authManager.GetToken();
+        using (UnityWebRequest request = UnityWebRequest.Get(baseUrl + "/pet"))
+        {
+            request.SetRequestHeader("Authorization", "Bearer " + token);
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log("Pet retrieved successfully!");
+                Debug.Log("Server Response: " + request.downloadHandler.text);
+
+                // Parsear la respuesta JSON
+                PetData pet = JsonUtility.FromJson<PetData>(request.downloadHandler.text);
+
+                // Mostrar el nombre en la UI
+                if (petNameText != null)
+                {
+                    petNameText.text = pet.name;
+                }
+                else
+                {
+                    Debug.LogError("petNameText no está asignado en el Inspector.");
+                }
+
+                // Actualizar los Sliders
+                if (hungrynessSlider != null)
+                {
+                    hungrynessSlider.value = pet.hungryness;
+                }
+                else
+                {
+                    Debug.LogError("hungrynessSlider no está asignado en el Inspector.");
+                }
+
+                if (cleanlinessSlider != null)
+                {
+                    cleanlinessSlider.value = pet.cleanliness;
+                }
+                else
+                {
+                    Debug.LogError("cleanlinessSlider no está asignado en el Inspector.");
+                }
+            }
+            else
+            {
+                Debug.LogError($"Error retrieving pet: {request.responseCode} - {request.error}");
+                Debug.LogError($"Server Response: {request.downloadHandler.text}");
+            }
+        }
+    }
+
+
 }
