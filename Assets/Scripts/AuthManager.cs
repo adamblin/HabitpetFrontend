@@ -33,7 +33,7 @@ public class AuthManager : MonoBehaviour
         else
         {
             Debug.Log("No hay token guardado. Mostrando pantalla de login.");
-            uiManager.ShowPanel(loginPage);
+            uiManager.ShowPanel("Login");
         }
     }
 
@@ -129,7 +129,7 @@ public class AuthManager : MonoBehaviour
         PlayerPrefs.DeleteKey("authToken");
         PlayerPrefs.Save();
         Debug.Log("Token eliminado. Usuario deslogueado.");
-        uiManager.ShowPanel(loginPage);
+        uiManager.ShowPanel("Login");
     }
 
     private IEnumerator CheckUserHasPet()
@@ -161,12 +161,12 @@ public class AuthManager : MonoBehaviour
                 if (string.IsNullOrEmpty(request.downloadHandler.text) || request.responseCode == 204)
                 {
                     Debug.Log("El usuario no tiene mascota. Mostrando pantalla de creación de mascota.");
-                    uiManager.ShowPanel(createPetPanel);
+                    uiManager.ShowPanel("CreatePet");
                 }
                 else
                 {
                     Debug.Log("Mascota encontrada. Mostrando pantalla de mascota.");
-                    uiManager.ShowPanel(petPanel);
+                    uiManager.ShowPanel("PetPanel");
                 }
             }
             else
@@ -180,7 +180,7 @@ public class AuthManager : MonoBehaviour
     private IEnumerator RedirectToLogin()
     {
         yield return new WaitForSeconds(1f);
-        uiManager.ShowPanel(loginPage);
+        uiManager.ShowPanel("Login");
     }
 }
 

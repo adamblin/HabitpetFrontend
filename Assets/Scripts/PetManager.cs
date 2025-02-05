@@ -59,7 +59,7 @@ public class PetManager : MonoBehaviour
         if (string.IsNullOrEmpty(token))
         {
             Debug.LogError("No token found! Redirecting to login.");
-            uiManager.ShowPanel(authManager.loginPage);
+            uiManager.ShowPanel("LoginPage");
             yield break;
         }
 
@@ -81,7 +81,7 @@ public class PetManager : MonoBehaviour
         if (request.result == UnityWebRequest.Result.Success)
         {
             Debug.Log("Pet created successfully!");
-            uiManager.ShowPanel(authManager.petPanel);  // Muestra el panel de la mascota
+            uiManager.ShowPanel("PetPanel");  // Muestra el panel de la mascota
         }
         else
         {

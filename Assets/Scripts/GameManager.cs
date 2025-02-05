@@ -22,7 +22,7 @@ public class GameManager : MonoBehaviour
         if (string.IsNullOrEmpty(token))
         {
             Debug.Log("No hi ha cap token. Mostrant pantalla de login.");
-            authManager.uiManager.ShowPanel(authManager.loginPage); // Mostrar el login en lugar de redirigir
+            authManager.uiManager.ShowPanel("Login"); // Mostrar el login en lugar de redirigir
         }
         else
         {
