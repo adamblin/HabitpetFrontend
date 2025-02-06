@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class UIManager : MonoBehaviour
 {
-    public CanvasGroup loginPage, registerPage, createPet, petPanel, taskPanel;
+    public CanvasGroup loginPage, registerPage, createPet, petPanel, taskPanel, friendsPanel, accessoryPanel;
 
     private Dictionary<string, CanvasGroup> panels;
     private CanvasGroup activePanel; // Guardar el panel actualmente activo
@@ -17,7 +17,9 @@ public class UIManager : MonoBehaviour
             { "Register", registerPage },
             { "CreatePet", createPet },
             { "PetPanel", petPanel },
-            { "TaskPanel", taskPanel }
+            { "TaskPanel", taskPanel },
+            {"FriendsPanel",friendsPanel },
+            {"AccessoryPanel",accessoryPanel }
         };
 
         // Activamos solo el panel inicial
@@ -58,11 +60,17 @@ public class UIManager : MonoBehaviour
             panel.alpha = t;
             yield return null;
         }
+        panel.interactable = false;
+        panel.blocksRaycasts = false;
         panel.gameObject.SetActive(false);
     }
 
+
     private IEnumerator FadeIn(CanvasGroup panel)
     {
+        panel.gameObject.SetActive(true);
+        panel.interactable = true;
+        panel.blocksRaycasts = true;
         panel.alpha = 0;
         for (float t = 0; t <= 1f; t += Time.deltaTime * 3)
         {
@@ -70,4 +78,5 @@ public class UIManager : MonoBehaviour
             yield return null;
         }
     }
+
 }
