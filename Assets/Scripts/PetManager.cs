@@ -22,6 +22,8 @@ public class PetManager : MonoBehaviour
     public Text petNameText;
     public Slider hungrynessSlider;
     public Slider cleanlinessSlider;
+    
+
 
 
 
