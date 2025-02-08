@@ -17,12 +17,6 @@ public class TaskData
     public string status;
 }
 
-[Serializable]
-public class TaskList
-{
-    public List<TaskData> tasks;
-}
-
 public class TaskManager : MonoBehaviour
 {
     public TMP_InputField taskNameInput;
@@ -51,8 +45,6 @@ public class TaskManager : MonoBehaviour
         {
             Debug.LogError("CreateTaskButton no asignado en el Inspector.");
         }
-
-      
     }
 
     public void CreateTask()
@@ -94,6 +86,7 @@ public class TaskManager : MonoBehaviour
         if (request.result == UnityWebRequest.Result.Success)
         {
             Debug.Log("Task created successfully!");
+            FetchTasks();
         }
         else
         {
@@ -125,17 +118,16 @@ public class TaskManager : MonoBehaviour
             if (request.result == UnityWebRequest.Result.Success)
             {
                 Debug.Log("Tasks retrieved successfully!");
-                string json = "{\"tasks\":" + request.downloadHandler.text + "}"; // JSON válido
-                TaskList taskList = JsonUtility.FromJson<TaskList>(json);
+                Debug.Log($"JSON recibido del servidor: {request.downloadHandler.text}");
 
-                // Limpiar el contenido antes de agregar nuevas tareas (opcional)
+                TaskData[] tasks = JsonHelper.FromJson<TaskData>(request.downloadHandler.text);
+
                 foreach (Transform child in taskListContent)
                 {
                     Destroy(child.gameObject);
                 }
 
-                // Añadir tareas al panel
-                foreach (var task in taskList.tasks)
+                foreach (var task in tasks)
                 {
                     AddTaskToUI(task);
                 }
@@ -157,6 +149,13 @@ public class TaskManager : MonoBehaviour
         }
 
         GameObject newTask = Instantiate(taskPrefab, taskListContent);
+        RectTransform rectTransform = newTask.GetComponent<RectTransform>();
+
+        if (rectTransform != null)
+        {
+            rectTransform.localScale = Vector3.one; // Evita que aparezca más pequeño
+            rectTransform.anchoredPosition3D = Vector3.zero;
+        }
 
         TMP_Text taskNameText = newTask.transform.Find("TaskNameText")?.GetComponent<TMP_Text>();
         TMP_Text taskTypeText = newTask.transform.Find("TaskTypeText")?.GetComponent<TMP_Text>();
@@ -170,4 +169,5 @@ public class TaskManager : MonoBehaviour
 
         Debug.Log($"Task {task.name} added to UI.");
     }
+
 }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class UIManager : MonoBehaviour
 {
-    public CanvasGroup loginPage, registerPage, createPet, petPanel, taskPanel, friendsPanel, accessoryPanel;
+    public CanvasGroup loginPage, registerPage, createPet, petPanel, taskPanel, friendsPanel, accessoryPanel, getPanel;
 
     private Dictionary<string, CanvasGroup> panels;
     private CanvasGroup activePanel; // Guardar el panel actualmente activo
@@ -19,7 +19,8 @@ public class UIManager : MonoBehaviour
             { "PetPanel", petPanel },
             { "TaskPanel", taskPanel },
             {"FriendsPanel",friendsPanel },
-            {"AccessoryPanel",accessoryPanel }
+            {"AccessoryPanel",accessoryPanel },
+            {"GetTaskPanel",getPanel }
         };
 
         // Activamos solo el panel inicial
