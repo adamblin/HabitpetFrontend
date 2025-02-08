@@ -27,6 +27,8 @@ public class TaskManager : MonoBehaviour
     public GameObject taskPrefab;
     private string baseUrl = "http://localhost:8080/tasks";
     public AuthManager authManager;
+    public Text Name;
+    
 
     private void Start()
     {
@@ -156,18 +158,21 @@ public class TaskManager : MonoBehaviour
             rectTransform.localScale = Vector3.one; // Evita que aparezca más pequeño
             rectTransform.anchoredPosition3D = Vector3.zero;
         }
-
-        TMP_Text taskNameText = newTask.transform.Find("TaskNameText")?.GetComponent<TMP_Text>();
-        TMP_Text taskTypeText = newTask.transform.Find("TaskTypeText")?.GetComponent<TMP_Text>();
-        TMP_Text estimatedTimeText = newTask.transform.Find("EstimatedTimeText")?.GetComponent<TMP_Text>();
-        TMP_Text taskStatusText = newTask.transform.Find("TaskStatusText")?.GetComponent<TMP_Text>();
+        Text taskNameText = newTask.transform.Find("TextName")?.GetComponent<Text>();  // Cambia el nombre visible
+        TMP_InputField taskNameIF = newTask.transform.Find("TaskNameIF")?.GetComponent<TMP_InputField>();
+        TMP_InputField estimatedTimeIF = newTask.transform.Find("TimeIF")?.GetComponent<TMP_InputField>();
+        TMP_InputField typeIF = newTask.transform.Find("TypeIF")?.GetComponent<TMP_InputField>();
+        TMP_InputField statusIF = newTask.transform.Find("StatusIF")?.GetComponent<TMP_InputField>();
 
         if (taskNameText != null) taskNameText.text = task.name;
-        if (taskTypeText != null) taskTypeText.text = task.type;
-        if (estimatedTimeText != null) estimatedTimeText.text = $"Time: {task.estimatedTime} min";
-        if (taskStatusText != null) taskStatusText.text = $"Status: {task.status}";
+        if (taskNameIF != null) taskNameIF.text = task.name;
+        if (estimatedTimeIF != null) estimatedTimeIF.text = task.estimatedTime.ToString();
+        if (typeIF != null) typeIF.text = task.type;
+        if (statusIF != null) statusIF.text = task.status;
 
         Debug.Log($"Task {task.name} added to UI.");
+        Debug.Log($"Instancia creada: {newTask.name}, con Task: {task.name}");
+
     }
 
 }

@@ -134,6 +134,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: TaskItemPanelGet
       objectReference: {fileID: 0}
+    - target: {fileID: 997928294233459701, guid: c90f6562feb2bc0469d37716a6fd915d, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8474900086200906097, guid: c90f6562feb2bc0469d37716a6fd915d, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -156,15 +160,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8474900086200906097, guid: c90f6562feb2bc0469d37716a6fd915d, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8474900086200906097, guid: c90f6562feb2bc0469d37716a6fd915d, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 0
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 8474900086200906097, guid: c90f6562feb2bc0469d37716a6fd915d, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 0
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 8474900086200906097, guid: c90f6562feb2bc0469d37716a6fd915d, type: 3}
       propertyPath: m_LocalPosition.x
@@ -196,11 +200,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8474900086200906097, guid: c90f6562feb2bc0469d37716a6fd915d, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0
+      value: 531.5
       objectReference: {fileID: 0}
     - target: {fileID: 8474900086200906097, guid: c90f6562feb2bc0469d37716a6fd915d, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0
+      value: -5
       objectReference: {fileID: 0}
     - target: {fileID: 8474900086200906097, guid: c90f6562feb2bc0469d37716a6fd915d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -219,6 +223,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c90f6562feb2bc0469d37716a6fd915d, type: 3}
+--- !u!114 &21047099 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6586344861262919825, guid: c90f6562feb2bc0469d37716a6fd915d, type: 3}
+  m_PrefabInstance: {fileID: 21047098}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &37845290
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6627,6 +6642,7 @@ MonoBehaviour:
   taskListContent: {fileID: 1204983011}
   taskPrefab: {fileID: 997928294233459701, guid: c90f6562feb2bc0469d37716a6fd915d, type: 3}
   authManager: {fileID: 881849014}
+  Name: {fileID: 21047099}
 --- !u!4 &1610524919
 Transform:
   m_ObjectHideFlags: 0
