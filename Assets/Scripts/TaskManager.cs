@@ -28,7 +28,7 @@ public class TaskManager : MonoBehaviour
     private string baseUrl = "http://localhost:8080/tasks";
     public AuthManager authManager;
     public Text Name;
-    
+
 
     private void Start()
     {
@@ -158,11 +158,12 @@ public class TaskManager : MonoBehaviour
             rectTransform.localScale = Vector3.one; // Evita que aparezca más pequeño
             rectTransform.anchoredPosition3D = Vector3.zero;
         }
-        Text taskNameText = newTask.transform.Find("TextName")?.GetComponent<Text>();  // Cambia el nombre visible
-        TMP_InputField taskNameIF = newTask.transform.Find("TaskNameIF")?.GetComponent<TMP_InputField>();
-        TMP_InputField estimatedTimeIF = newTask.transform.Find("TimeIF")?.GetComponent<TMP_InputField>();
-        TMP_InputField typeIF = newTask.transform.Find("TypeIF")?.GetComponent<TMP_InputField>();
-        TMP_InputField statusIF = newTask.transform.Find("StatusIF")?.GetComponent<TMP_InputField>();
+        Text taskNameText = newTask.transform.Find("InputFields/TextName")?.GetComponent<Text>();  // Cambia el nombre visible
+        TMP_InputField taskNameIF = FindDeepChild(newTask.transform, "TaskNameIF")?.GetComponent<TMP_InputField>();
+        TMP_InputField estimatedTimeIF = FindDeepChild(newTask.transform, "TimeIF")?.GetComponent<TMP_InputField>();
+        TMP_InputField typeIF = FindDeepChild(newTask.transform, "TypeIF")?.GetComponent<TMP_InputField>();
+        TMP_InputField statusIF = FindDeepChild(newTask.transform, "StatusIF")?.GetComponent<TMP_InputField>();
+
 
         if (taskNameText != null) taskNameText.text = task.name;
         if (taskNameIF != null) taskNameIF.text = task.name;
@@ -173,6 +174,19 @@ public class TaskManager : MonoBehaviour
         Debug.Log($"Task {task.name} added to UI.");
         Debug.Log($"Instancia creada: {newTask.name}, con Task: {task.name}");
 
+    }
+    public static Transform FindDeepChild(Transform parent, string name)
+    {
+        foreach (Transform child in parent)
+        {
+            if (child.name == name)
+                return child;
+
+            Transform found = FindDeepChild(child, name);
+            if (found != null)
+                return found;
+        }
+        return null;
     }
 
 }

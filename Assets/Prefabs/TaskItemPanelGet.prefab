@@ -729,7 +729,7 @@ GameObject:
   - component: {fileID: 5334420580952703927}
   - component: {fileID: 6660050335094781726}
   m_Layer: 5
-  m_Name: 'TimeIF '
+  m_Name: TimeIF
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1806,7 +1806,7 @@ GameObject:
   - component: {fileID: 4996342736593674427}
   - component: {fileID: 3852837047367352745}
   m_Layer: 5
-  m_Name: 'TypeIF  '
+  m_Name: TypeIF
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2002,7 +2002,7 @@ GameObject:
   - component: {fileID: 243308428986276763}
   - component: {fileID: 289329517419011687}
   m_Layer: 5
-  m_Name: 'StatusIF '
+  m_Name: StatusIF
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
