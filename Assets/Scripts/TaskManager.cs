@@ -158,35 +158,42 @@ public class TaskManager : MonoBehaviour
             rectTransform.localScale = Vector3.one; // Evita que aparezca más pequeño
             rectTransform.anchoredPosition3D = Vector3.zero;
         }
-        Text taskNameText = newTask.transform.Find("InputFields/TextName")?.GetComponent<Text>();  // Cambia el nombre visible
-        TMP_InputField taskNameIF = FindDeepChild(newTask.transform, "TaskNameIF")?.GetComponent<TMP_InputField>();
-        TMP_InputField estimatedTimeIF = FindDeepChild(newTask.transform, "TimeIF")?.GetComponent<TMP_InputField>();
-        TMP_InputField typeIF = FindDeepChild(newTask.transform, "TypeIF")?.GetComponent<TMP_InputField>();
-        TMP_InputField statusIF = FindDeepChild(newTask.transform, "StatusIF")?.GetComponent<TMP_InputField>();
 
+        TMP_InputField taskNameIF = newTask.transform.Find("InputFields/TaskNameIF")?.GetComponent<TMP_InputField>();
+        TMP_InputField estimatedTimeIF = newTask.transform.Find("InputFields/TimeIF")?.GetComponent<TMP_InputField>();
+        TMP_InputField typeIF = newTask.transform.Find("InputFields/TypeIF")?.GetComponent<TMP_InputField>();
+        TMP_InputField statusIF = newTask.transform.Find("InputFields/StatusIF")?.GetComponent<TMP_InputField>();
 
-        if (taskNameText != null) taskNameText.text = task.name;
-        if (taskNameIF != null) taskNameIF.text = task.name;
-        if (estimatedTimeIF != null) estimatedTimeIF.text = task.estimatedTime.ToString();
-        if (typeIF != null) typeIF.text = task.type;
-        if (statusIF != null) statusIF.text = task.status;
+        if (taskNameIF == null) Debug.LogError("No se encontró TaskNameIF en el prefab.");
+        if (estimatedTimeIF == null) Debug.LogError("No se encontró TimeIF en el prefab.");
+        if (typeIF == null) Debug.LogError("No se encontró TypeIF en el prefab.");
+        if (statusIF == null) Debug.LogError("No se encontró StatusIF en el prefab.");
+
+        if (taskNameIF != null)
+        {
+            taskNameIF.text = task.name;
+            taskNameIF.textComponent.text = task.name; // Forzar actualización
+        }
+
+        if (estimatedTimeIF != null)
+        {
+            estimatedTimeIF.text = task.estimatedTime.ToString();
+            estimatedTimeIF.textComponent.text = task.estimatedTime.ToString();
+        }
+
+        if (typeIF != null)
+        {
+            typeIF.text = task.type;
+            typeIF.textComponent.text = task.type;
+        }
+
+        if (statusIF != null)
+        {
+            statusIF.text = task.status;
+            statusIF.textComponent.text = task.status;
+        }
 
         Debug.Log($"Task {task.name} added to UI.");
-        Debug.Log($"Instancia creada: {newTask.name}, con Task: {task.name}");
-
-    }
-    public static Transform FindDeepChild(Transform parent, string name)
-    {
-        foreach (Transform child in parent)
-        {
-            if (child.name == name)
-                return child;
-
-            Transform found = FindDeepChild(child, name);
-            if (found != null)
-                return found;
-        }
-        return null;
     }
 
 }
