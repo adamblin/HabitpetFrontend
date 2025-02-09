@@ -163,11 +163,13 @@ public class TaskManager : MonoBehaviour
         TMP_InputField estimatedTimeIF = newTask.transform.Find("InputFields/TimeIF")?.GetComponent<TMP_InputField>();
         TMP_InputField typeIF = newTask.transform.Find("InputFields/TypeIF")?.GetComponent<TMP_InputField>();
         TMP_InputField statusIF = newTask.transform.Find("InputFields/StatusIF")?.GetComponent<TMP_InputField>();
+        Text textName = newTask.transform.Find("InputFields/TextName")?.GetComponent<Text>();
 
         if (taskNameIF == null) Debug.LogError("No se encontró TaskNameIF en el prefab.");
         if (estimatedTimeIF == null) Debug.LogError("No se encontró TimeIF en el prefab.");
         if (typeIF == null) Debug.LogError("No se encontró TypeIF en el prefab.");
         if (statusIF == null) Debug.LogError("No se encontró StatusIF en el prefab.");
+        if (textName == null) Debug.LogError("No se encontró TextName en el prefab.");
 
         if (taskNameIF != null)
         {
@@ -191,6 +193,11 @@ public class TaskManager : MonoBehaviour
         {
             statusIF.text = task.status;
             statusIF.textComponent.text = task.status;
+        }
+
+        if (textName != null)
+        {
+            textName.text = task.name;
         }
 
         Debug.Log($"Task {task.name} added to UI.");
