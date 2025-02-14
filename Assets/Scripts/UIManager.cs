@@ -7,7 +7,7 @@ public class UIManager : MonoBehaviour
     public CanvasGroup loginPage, registerPage, createPet, petPanel, taskPanel, friendsPanel, accessoryPanel, getPanel;
 
     private Dictionary<string, CanvasGroup> panels;
-    private CanvasGroup activePanel; // Guardar el panel actualmente activo
+    private CanvasGroup activePanel; 
 
     private void Awake()
     {

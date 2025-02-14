@@ -1,14 +1,18 @@
+using System;
 using System.Collections;
+using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
+
+
 
 public class AuthManager : MonoBehaviour
 {
     public GameObject loginPage;
     public GameObject registerPage;
     public GameObject petPanel;
-    public GameObject createPetPanel; // Asegurar que está asignado en el inspector de Unity
+    public GameObject createPetPanel; 
     public UIManager uiManager;
 
     public InputField loginEmail;
@@ -18,7 +22,10 @@ public class AuthManager : MonoBehaviour
     public InputField registerPassword;
     public Text loginMessage;
     public Text registerMessage;
+    public Toggle loginRememberMeToggle; 
+    public Toggle registerRememberMeToggle;
 
+    private string sessionToken;
     private string baseUrl = "http://localhost:8080/auth";
 
     private void Start()
@@ -28,14 +35,16 @@ public class AuthManager : MonoBehaviour
         if (!string.IsNullOrEmpty(token))
         {
             Debug.Log("Token encontrado. Verificando si el usuario tiene mascota...");
-            StartCoroutine(CheckUserHasPet()); // Ahora sí verifica si tiene mascota
+            StartCoroutine(CheckUserHasPet());
         }
         else
         {
-            Debug.Log("No hay token guardado. Mostrando pantalla de login.");
+            Debug.Log("No hay token guardado o usuario no marcó 'Remember Me'. Mostrando pantalla de login.");
             uiManager.ShowPanel("Login");
         }
     }
+
+
 
     public void Register()
     {
@@ -51,7 +60,7 @@ public class AuthManager : MonoBehaviour
     {
         string json = $"{{\"username\":\"{registerUsername.text}\", \"email\":\"{registerEmail.text}\", \"password\":\"{registerPassword.text}\"}}";
         UnityWebRequest request = new UnityWebRequest(baseUrl + "/register", "POST");
-        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);
         request.downloadHandler = new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", "application/json");
@@ -61,11 +70,12 @@ public class AuthManager : MonoBehaviour
         if (request.result == UnityWebRequest.Result.Success)
         {
             AuthResponse response = JsonUtility.FromJson<AuthResponse>(request.downloadHandler.text);
-            if (response != null && !string.IsNullOrEmpty(response.token))
+            if (!string.IsNullOrEmpty(response.token))
             {
-                SaveToken(response.token);
+                bool rememberMe = registerRememberMeToggle != null && registerRememberMeToggle.isOn;
+                SaveToken(response.token, rememberMe);
                 Debug.Log("Usuario registrado correctamente y token guardado.");
-                StartCoroutine(CheckUserHasPet()); // Ahora verificamos si tiene mascota
+                StartCoroutine(CheckUserHasPet());
             }
             else
             {
@@ -78,11 +88,13 @@ public class AuthManager : MonoBehaviour
         }
     }
 
+
+
     private IEnumerator LoginRequest()
     {
         string json = $"{{\"email\":\"{loginEmail.text}\", \"password\":\"{loginPassword.text}\"}}";
         UnityWebRequest request = new UnityWebRequest(baseUrl + "/login", "POST");
-        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);
         request.downloadHandler = new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", "application/json");
@@ -94,9 +106,10 @@ public class AuthManager : MonoBehaviour
             AuthResponse response = JsonUtility.FromJson<AuthResponse>(request.downloadHandler.text);
             if (!string.IsNullOrEmpty(response.token))
             {
-                SaveToken(response.token);
+                bool rememberMe = loginRememberMeToggle != null && loginRememberMeToggle.isOn;
+                SaveToken(response.token, rememberMe);
                 Debug.Log("Usuario logueado correctamente y token guardado.");
-                StartCoroutine(CheckUserHasPet()); // Ahora verificamos si tiene mascota
+                StartCoroutine(CheckUserHasPet());
             }
             else
             {
@@ -109,28 +122,65 @@ public class AuthManager : MonoBehaviour
         }
     }
 
-    private void SaveToken(string token)
+
+
+   
+
+    private void SaveToken(string token, bool rememberMe)
     {
         if (!string.IsNullOrEmpty(token))
         {
-            PlayerPrefs.SetString("authToken", token);
-            PlayerPrefs.Save();
-            Debug.Log("Token guardado en PlayerPrefs.");
+            if (rememberMe)
+            {
+                PlayerPrefs.SetString("authToken", token);
+                PlayerPrefs.SetInt("rememberMe", 1);
+                PlayerPrefs.Save();
+                Debug.Log("Token guardado en PlayerPrefs (sesión guardada).");
+            }
+            else
+            {
+                sessionToken = token; // Guarda el token solo en memoria
+                PlayerPrefs.DeleteKey("authToken"); // No lo guarda en PlayerPrefs
+                PlayerPrefs.DeleteKey("rememberMe");
+                PlayerPrefs.Save();
+                Debug.Log("Sesión iniciada sin recordar, el token no se guardará.");
+            }
         }
     }
 
+
+
+
     public string GetToken()
     {
-        return PlayerPrefs.HasKey("authToken") ? PlayerPrefs.GetString("authToken") : null;
+        if (sessionToken != null)
+        {
+            return sessionToken; 
+        }
+        else if (PlayerPrefs.HasKey("rememberMe") && PlayerPrefs.GetInt("rememberMe") == 1)
+        {
+            return PlayerPrefs.HasKey("authToken") ? PlayerPrefs.GetString("authToken") : null;
+        }
+        else
+        {
+            return null;
+        }
     }
+
+
+
 
     public void ClearToken()
     {
+        sessionToken = null; 
         PlayerPrefs.DeleteKey("authToken");
+        PlayerPrefs.DeleteKey("rememberMe");
         PlayerPrefs.Save();
         Debug.Log("Token eliminado. Usuario deslogueado.");
         uiManager.ShowPanel("Login");
     }
+
+
 
     private IEnumerator CheckUserHasPet()
     {
@@ -181,6 +231,63 @@ public class AuthManager : MonoBehaviour
     {
         yield return new WaitForSeconds(1f);
         uiManager.ShowPanel("Login");
+    }
+
+    public string GetUsername()
+    {
+        string token = GetToken();
+        if (string.IsNullOrEmpty(token))
+        {
+            Debug.LogError("No token found!");
+            return null;
+        }
+
+        try
+        {
+            string[] tokenParts = token.Split('.'); // Dividimos el token JWT
+            if (tokenParts.Length < 2)
+            {
+                Debug.LogError("Invalid JWT format");
+                return null;
+            }
+
+            string payload = tokenParts[1]; // El Payload es la segunda parte del JWT
+            string decodedPayload = DecodeBase64(payload);
+
+            Debug.Log($"Decoded JWT Payload: {decodedPayload}");
+
+            string username = ExtractUsernameFromJson(decodedPayload);
+            return username;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error decoding JWT: {e.Message}");
+            return null;
+        }
+    }
+
+    private string DecodeBase64(string base64)
+    {
+        base64 = base64.Replace('-', '+').Replace('_', '/'); // Normalizar Base64 URL
+        switch (base64.Length % 4)
+        {
+            case 2: base64 += "=="; break;
+            case 3: base64 += "="; break;
+        }
+
+        byte[] data = Convert.FromBase64String(base64);
+        return Encoding.UTF8.GetString(data);
+    }
+
+    private string ExtractUsernameFromJson(string json)
+    {
+        int startIndex = json.IndexOf("\"sub\":\"") + 7; // Busca `"sub":"` y extrae el valor
+        if (startIndex == 6) return null; // No encontrado
+
+        int endIndex = json.IndexOf("\"", startIndex);
+        if (endIndex == -1) return null; // No encontrado
+
+        return json.Substring(startIndex, endIndex - startIndex);
     }
 }
 
