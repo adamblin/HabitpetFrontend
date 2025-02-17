@@ -7,7 +7,9 @@ public class UIManager : MonoBehaviour
     public CanvasGroup loginPage, registerPage, createPet, petPanel, taskPanel, friendsPanel, accessoryPanel, getPanel;
 
     private Dictionary<string, CanvasGroup> panels;
-    private CanvasGroup activePanel; 
+    private CanvasGroup activePanel;
+
+    public FriendManager friendManager;
 
     private void Awake()
     {
@@ -52,6 +54,18 @@ public class UIManager : MonoBehaviour
         newPanel.gameObject.SetActive(true);
         yield return StartCoroutine(FadeIn(newPanel)); // Aplica FadeIn al nuevo panel
         activePanel = newPanel;
+       
+
+        /*
+        if (newPanel.name == friendsPanel.name)
+        {
+            if (friendManager != null)
+            {
+                Debug.Log("ahora si entra");
+                friendManager.FetchFriendsAndRequests();
+            }
+        }
+        */
     }
 
     private IEnumerator FadeOut(CanvasGroup panel)

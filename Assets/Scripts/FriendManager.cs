@@ -8,7 +8,8 @@ using TMPro;
 [Serializable]
 public class FriendData
 {
-    public string friendId;
+    public string userUsername;
+    public string friendUsername;
     public bool accepted;
 }
 
@@ -16,6 +17,11 @@ public class FriendManager : MonoBehaviour
 {
     public TMP_InputField friendNameInput;
     public Button addFriendButton;
+
+    // NUEVOS BOTONES
+    public Button fetchRequestsButton;  // Botón para obtener solicitudes
+    public Button fetchFriendsButton;   // Botón para obtener amigos
+
     public Transform requestListContent;
     public Transform friendListContent;
     public GameObject requestPrefab;
@@ -31,6 +37,7 @@ public class FriendManager : MonoBehaviour
             return;
         }
 
+        // Configurar botón "Add Friend"
         if (addFriendButton != null)
         {
             addFriendButton.onClick.RemoveAllListeners();
@@ -40,18 +47,47 @@ public class FriendManager : MonoBehaviour
         {
             Debug.LogError("AddFriendButton no asignado en el Inspector.");
         }
-    }
-    void OnEnable()
-    {
-        FetchFriendsAndRequests();
+
+        // CONFIGURAR BOTONES DE FETCH
+        if (fetchRequestsButton != null)
+        {
+            fetchRequestsButton.onClick.RemoveAllListeners();
+            fetchRequestsButton.onClick.AddListener(() =>
+            {
+                StartCoroutine(GetFriendRequests());
+            });
+        }
+        else
+        {
+            Debug.LogError("fetchRequestsButton no asignado en el Inspector.");
+        }
+
+        if (fetchFriendsButton != null)
+        {
+            fetchFriendsButton.onClick.RemoveAllListeners();
+            fetchFriendsButton.onClick.AddListener(() =>
+            {
+                StartCoroutine(GetFriends());
+            });
+        }
+        else
+        {
+            Debug.LogError("fetchFriendsButton no asignado en el Inspector.");
+        }
     }
 
+    // (OPCIONAL) Si no deseas que se haga fetch automáticamente al habilitar el GameObject, comenta o elimina OnEnable
+    // void OnEnable()
+    // {
+    //     FetchFriendsAndRequests();
+    // }
+
+    // Método que podrías seguir usando si quisieras un botón único que haga ambas peticiones
     public void FetchFriendsAndRequests()
     {
         StartCoroutine(GetFriendRequests());
         StartCoroutine(GetFriends());
     }
-
 
     private IEnumerator GetFriendRequests()
     {
@@ -83,12 +119,13 @@ public class FriendManager : MonoBehaviour
 
                 foreach (var requestItem in requests)
                 {
-                    Debug.Log($"Solicitud de: {requestItem.friendId}, aceptada: {requestItem.accepted}");
+                    // 'userUsername' es el remitente de la solicitud
+                    Debug.Log($"Solicitud de: {requestItem.userUsername} (envía) para: {requestItem.friendUsername}, aceptada: {requestItem.accepted}");
 
-                    // Solo mostrar solicitudes pendientes
+                    // Mostrar la solicitud solo si aún no ha sido aceptada
                     if (!requestItem.accepted)
                     {
-                        AddRequestToUI(requestItem.friendId);
+                        AddRequestToUI(requestItem.userUsername);
                     }
                 }
             }
@@ -100,6 +137,7 @@ public class FriendManager : MonoBehaviour
         }
     }
 
+
     private IEnumerator GetFriends()
     {
         string token = authManager?.GetToken();
@@ -110,6 +148,7 @@ public class FriendManager : MonoBehaviour
             yield break;
         }
 
+        // Ajusta la ruta según tu backend; si /accepted no existe, usa /friendships
         using (UnityWebRequest request = UnityWebRequest.Get($"{baseUrl}/accepted"))
         {
             request.SetRequestHeader("Authorization", "Bearer " + token);
@@ -120,14 +159,16 @@ public class FriendManager : MonoBehaviour
                 Debug.Log($"Amigos obtenidos: {request.downloadHandler.text}");
                 FriendData[] friends = JsonHelper.FromJson<FriendData>(request.downloadHandler.text);
 
+                // Limpiar la lista anterior
                 foreach (Transform child in friendListContent)
                 {
                     Destroy(child.gameObject);
                 }
 
+                // Mostrar amigos
                 foreach (var friend in friends)
                 {
-                    AddFriendToUI(friend.friendId);
+                    AddFriendToUI(friend.friendUsername);
                 }
             }
             else
@@ -185,7 +226,7 @@ public class FriendManager : MonoBehaviour
         }
     }
 
-    private void AddRequestToUI(string friendUsername)
+    private void AddRequestToUI(string displayName)
     {
         if (requestPrefab == null || requestListContent == null)
         {
@@ -194,17 +235,18 @@ public class FriendManager : MonoBehaviour
         }
 
         GameObject requestItem = Instantiate(requestPrefab, requestListContent);
-        TextMeshProUGUI requestText = requestItem.transform.Find("RequestText")?.GetComponent<TextMeshProUGUI>();
+        TextMeshProUGUI requestText = requestItem.transform.Find("UsernameText")?.GetComponent<TextMeshProUGUI>();
         Button acceptButton = requestItem.transform.Find("AcceptButton")?.GetComponent<Button>();
         Button declineButton = requestItem.transform.Find("DeclineButton")?.GetComponent<Button>();
 
+
         if (requestText != null)
-            requestText.text = friendUsername;
+            requestText.text = displayName;
         else
-            Debug.LogError("No se encontró RequestText en el prefab.");
+            Debug.LogError("No se encontró UsernameText en el prefab.");
 
         if (acceptButton != null)
-            acceptButton.onClick.AddListener(() => AcceptFriend(friendUsername, requestItem));
+            acceptButton.onClick.AddListener(() => AcceptFriend(displayName, requestItem));
         else
             Debug.LogError("No se encontró AcceptButton en el prefab.");
 
