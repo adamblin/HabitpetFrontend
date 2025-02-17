@@ -18,9 +18,9 @@ public class FriendManager : MonoBehaviour
     public TMP_InputField friendNameInput;
     public Button addFriendButton;
 
-    // NUEVOS BOTONES
-    public Button fetchRequestsButton;  // Botón para obtener solicitudes
-    public Button fetchFriendsButton;   // Botón para obtener amigos
+    
+    public Button fetchRequestsButton; 
+    public Button fetchFriendsButton;   
 
     public Transform requestListContent;
     public Transform friendListContent;
@@ -37,7 +37,7 @@ public class FriendManager : MonoBehaviour
             return;
         }
 
-        // Configurar botón "Add Friend"
+      
         if (addFriendButton != null)
         {
             addFriendButton.onClick.RemoveAllListeners();
@@ -48,7 +48,7 @@ public class FriendManager : MonoBehaviour
             Debug.LogError("AddFriendButton no asignado en el Inspector.");
         }
 
-        // CONFIGURAR BOTONES DE FETCH
+       
         if (fetchRequestsButton != null)
         {
             fetchRequestsButton.onClick.RemoveAllListeners();
@@ -149,7 +149,7 @@ public class FriendManager : MonoBehaviour
         }
 
         // Ajusta la ruta según tu backend; si /accepted no existe, usa /friendships
-        using (UnityWebRequest request = UnityWebRequest.Get($"{baseUrl}/accepted"))
+        using (UnityWebRequest request = UnityWebRequest.Get($"{baseUrl}"))
         {
             request.SetRequestHeader("Authorization", "Bearer " + token);
             yield return request.SendWebRequest();
