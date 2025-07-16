@@ -92,7 +92,7 @@ public class AuthManager : MonoBehaviour
 
     private IEnumerator LoginRequest()
     {
-        string json = $"{{\"email\":\"{loginEmail.text}\", \"password\":\"{loginPassword.text}\"}}";
+        string json = $"{{\"username\":\"{loginEmail.text}\", \"password\":\"{loginPassword.text}\"}}";
         UnityWebRequest request = new UnityWebRequest(baseUrl + "/login", "POST");
         byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);

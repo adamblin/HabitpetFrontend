@@ -10,6 +10,8 @@ public class FriendData
 {
     public string userUsername;
     public string friendUsername;
+    public string userId;
+    public string friendId;
     public bool accepted;
 }
 
@@ -76,13 +78,7 @@ public class FriendManager : MonoBehaviour
         }
     }
 
-    // (OPCIONAL) Si no deseas que se haga fetch automáticamente al habilitar el GameObject, comenta o elimina OnEnable
-    // void OnEnable()
-    // {
-    //     FetchFriendsAndRequests();
-    // }
-
-    // Método que podrías seguir usando si quisieras un botón único que haga ambas peticiones
+  
     public void FetchFriendsAndRequests()
     {
         StartCoroutine(GetFriendRequests());
@@ -125,7 +121,7 @@ public class FriendManager : MonoBehaviour
                     // Mostrar la solicitud solo si aún no ha sido aceptada
                     if (!requestItem.accepted)
                     {
-                        AddRequestToUI(requestItem.userUsername);
+                        AddRequestToUI(requestItem);
                     }
                 }
             }
@@ -226,27 +222,20 @@ public class FriendManager : MonoBehaviour
         }
     }
 
-    private void AddRequestToUI(string displayName)
+    private void AddRequestToUI(FriendData requestData)
     {
-        if (requestPrefab == null || requestListContent == null)
-        {
-            Debug.LogError("requestPrefab o requestListContent no asignado en el Inspector.");
-            return;
-        }
-
         GameObject requestItem = Instantiate(requestPrefab, requestListContent);
         TextMeshProUGUI requestText = requestItem.transform.Find("UsernameText")?.GetComponent<TextMeshProUGUI>();
         Button acceptButton = requestItem.transform.Find("AcceptButton")?.GetComponent<Button>();
         Button declineButton = requestItem.transform.Find("DeclineButton")?.GetComponent<Button>();
 
-
         if (requestText != null)
-            requestText.text = displayName;
+            requestText.text = requestData.userUsername;
         else
             Debug.LogError("No se encontró UsernameText en el prefab.");
 
         if (acceptButton != null)
-            acceptButton.onClick.AddListener(() => AcceptFriend(displayName, requestItem));
+            acceptButton.onClick.AddListener(() => AcceptFriend(requestData.userId, requestItem));
         else
             Debug.LogError("No se encontró AcceptButton en el prefab.");
 
@@ -256,12 +245,13 @@ public class FriendManager : MonoBehaviour
             Debug.LogError("No se encontró DeclineButton en el prefab.");
     }
 
-    private void AcceptFriend(string friendUsername, GameObject requestItem)
+
+    private void AcceptFriend(string senderId, GameObject requestItem)
     {
-        StartCoroutine(AcceptFriendRequest(friendUsername, requestItem));
+        StartCoroutine(AcceptFriendRequest(senderId, requestItem));
     }
 
-    private IEnumerator AcceptFriendRequest(string friendUsername, GameObject requestItem)
+    private IEnumerator AcceptFriendRequest(string senderId, GameObject requestItem)
     {
         string token = authManager?.GetToken();
 
@@ -271,16 +261,15 @@ public class FriendManager : MonoBehaviour
             yield break;
         }
 
-        using (UnityWebRequest request = UnityWebRequest.PostWwwForm($"{baseUrl}/accept/{friendUsername}", ""))
+        using (UnityWebRequest request = UnityWebRequest.PostWwwForm($"{baseUrl}/accept/{senderId}", ""))
         {
             request.SetRequestHeader("Authorization", "Bearer " + token);
             yield return request.SendWebRequest();
 
             if (request.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log($"Amistad con {friendUsername} aceptada.");
+                Debug.Log($"Amistad aceptada con usuario que envió la solicitud (ID: {senderId})");
                 Destroy(requestItem);
-                AddFriendToUI(friendUsername);
             }
             else
             {
@@ -289,6 +278,7 @@ public class FriendManager : MonoBehaviour
             }
         }
     }
+
 
     private void AddFriendToUI(string friendUsername)
     {
