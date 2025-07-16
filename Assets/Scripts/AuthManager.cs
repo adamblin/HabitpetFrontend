@@ -236,28 +236,25 @@ public class AuthManager : MonoBehaviour
     public string GetUsername()
     {
         string token = GetToken();
-        if (string.IsNullOrEmpty(token))
+        if (string.IsNullOrEmpty(token)) return null;
+
+        string[] parts = token.Split('.');
+        if (parts.Length != 3) return null;
+
+        string payload = parts[1];
+        payload = payload.Replace('-', '+').Replace('_', '/');
+        switch (payload.Length % 4)
         {
-            Debug.LogError("No token found!");
-            return null;
+            case 2: payload += "=="; break;
+            case 3: payload += "="; break;
+            case 1: payload += "==="; break;
         }
 
         try
         {
-            string[] tokenParts = token.Split('.'); // Dividimos el token JWT
-            if (tokenParts.Length < 2)
-            {
-                Debug.LogError("Invalid JWT format");
-                return null;
-            }
-
-            string payload = tokenParts[1]; // El Payload es la segunda parte del JWT
-            string decodedPayload = DecodeBase64(payload);
-
-            Debug.Log($"Decoded JWT Payload: {decodedPayload}");
-
-            string username = ExtractUsernameFromJson(decodedPayload);
-            return username;
+            string json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+            var data = JsonUtility.FromJson<JWTSubWrapper>(json);
+            return data.sub;
         }
         catch (Exception e)
         {
@@ -289,6 +286,12 @@ public class AuthManager : MonoBehaviour
 
         return json.Substring(startIndex, endIndex - startIndex);
     }
+
+    [Serializable]
+    private class JWTSubWrapper
+    {
+        public string sub;
+    }
 }
 
 [System.Serializable]
@@ -296,3 +299,6 @@ public class AuthResponse
 {
     public string token;
 }
+
+
+
