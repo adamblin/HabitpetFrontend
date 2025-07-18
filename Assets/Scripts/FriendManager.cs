@@ -5,7 +5,6 @@ using UnityEngine.Networking;
 using UnityEngine.UI;
 using TMPro;
 
-public enum FriendshipStatus { PENDING, ACCEPTED, REJECTED, BLOCKED }
 
 [Serializable]
 public class FriendData
@@ -14,7 +13,7 @@ public class FriendData
     public string friendUsername;
     public string userId;
     public string friendId;
-    public FriendshipStatus status;
+    public string status;
 }
 
 public class FriendManager : MonoBehaviour
@@ -48,6 +47,9 @@ public class FriendManager : MonoBehaviour
 
         if (fetchFriendsButton != null)
             fetchFriendsButton.onClick.AddListener(GetAcceptedFriends);
+
+        FetchFriendsAndRequests();
+
     }
 
     public void FetchFriendsAndRequests()
@@ -81,7 +83,7 @@ public class FriendManager : MonoBehaviour
 
                 foreach (var requestItem in requests)
                 {
-                    if (requestItem.status == FriendshipStatus.PENDING)
+                    if (requestItem.status == "PENDING")
                         AddRequestToUI(requestItem);
                 }
             }
@@ -118,7 +120,7 @@ public class FriendManager : MonoBehaviour
 
                 foreach (var friend in friends)
                 {
-                    if (friend.status == FriendshipStatus.ACCEPTED)
+                    if (friend.status == "ACCEPTED")
                         AddFriendToUI(friend);
                 }
             }
@@ -229,7 +231,7 @@ public class FriendManager : MonoBehaviour
                     {
                         userUsername = authManager.GetUsername(),
                         friendUsername = acceptedUsername,
-                        status = FriendshipStatus.ACCEPTED
+                        status = "ACCEPTED"
                     };
 
                     AddFriendToUI(newFriend);
@@ -251,23 +253,19 @@ public class FriendManager : MonoBehaviour
 
     private void AddFriendToUI(FriendData friendData)
     {
-        string currentUsername = authManager.GetUsername();
-
-        string displayName = friendData.userUsername == currentUsername
-            ? friendData.friendUsername
-            : friendData.userUsername;
-
         GameObject friendItem = Instantiate(friendPrefab, friendListContent);
         var friendText = friendItem.transform.Find("FriendText")?.GetComponent<TextMeshProUGUI>();
 
         if (friendText != null)
-            friendText.text = displayName;
+            friendText.text = friendData.friendUsername;
     }
+
 
     public void GetAcceptedFriends()
     {
         StartCoroutine(GetAcceptedFriendsCoroutine());
     }
+
 
     private IEnumerator GetAcceptedFriendsCoroutine()
     {
@@ -285,18 +283,28 @@ public class FriendManager : MonoBehaviour
             request.SetRequestHeader("Authorization", "Bearer " + token);
             yield return request.SendWebRequest();
 
+            // ⬇️ Añade estos logs aquí justo después de recibir la respuesta
+            string rawJson = request.downloadHandler.text;
+            Debug.Log("📥 JSON recibido: " + rawJson);
+
+            FriendData[] friends = JsonHelper.FromJson<FriendData>(rawJson);
+            Debug.Log("✅ Amigos parseados: " + friends.Length);
+
+            foreach (var f in friends)
+            {
+                Debug.Log($"👤 Amigo: {f.friendUsername} | Estado: {f.status}");
+            }
+
             if (request.result == UnityWebRequest.Result.Success)
             {
-                FriendData[] friends = JsonHelper.FromJson<FriendData>(request.downloadHandler.text);
-
-                // Limpiar contenido anterior de la UI
+                // Limpiar lista anterior
                 foreach (Transform child in friendListContent)
                     Destroy(child.gameObject);
 
-                // Añadir cada amigo aceptado a la UI
+                // Mostrar amigos
                 foreach (var friend in friends)
                 {
-                    if (friend.status == FriendshipStatus.ACCEPTED)
+                    if (friend.status == "ACCEPTED")
                     {
                         AddFriendToUI(friend);
                     }
@@ -309,5 +317,7 @@ public class FriendManager : MonoBehaviour
             }
         }
     }
+
+
 
 }

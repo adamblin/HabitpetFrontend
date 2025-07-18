@@ -5,8 +5,13 @@ public static class JsonHelper
 {
     public static T[] FromJson<T>(string json)
     {
-        string newJson = "{\"items\":" + json + "}";
-        Wrapper<T> wrapper = JsonUtility.FromJson<Wrapper<T>>(newJson);
+        // Detectar si empieza por [ y termina en ] es un array puro
+        if (json.TrimStart().StartsWith("["))
+        {
+            json = "{\"items\":" + json + "}";
+        }
+
+        Wrapper<T> wrapper = JsonUtility.FromJson<Wrapper<T>>(json);
         return wrapper.items;
     }
 
