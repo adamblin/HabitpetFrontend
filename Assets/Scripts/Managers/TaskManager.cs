@@ -66,7 +66,7 @@ public class TaskManager : MonoBehaviour
 
     private IEnumerator SendTaskCreationRequest(string taskName, int estimatedTime, string taskType)
     {
-        string token = authManager?.GetToken();
+        string token = SessionManager.GetToken();
 
         if (string.IsNullOrEmpty(token))
         {
@@ -104,7 +104,7 @@ public class TaskManager : MonoBehaviour
 
     private IEnumerator GetTasks()
     {
-        string token = authManager?.GetToken();
+        string token = SessionManager.GetToken();
 
         if (string.IsNullOrEmpty(token))
         {

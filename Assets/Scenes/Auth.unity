@@ -5649,11 +5649,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   petNameInput: {fileID: 706409171}
-  uiManager: {fileID: 1406594968}
-  authManager: {fileID: 881849014}
   petNameText: {fileID: 841639379}
   hungrynessSlider: {fileID: 1739006681}
   cleanlinessSlider: {fileID: 272292580}
+  uiManager: {fileID: 1406594968}
+  authManager: {fileID: 881849014}
 --- !u!4 &845440347
 Transform:
   m_ObjectHideFlags: 0

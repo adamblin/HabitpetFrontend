@@ -60,8 +60,8 @@ public class FriendManager : MonoBehaviour
 
     private IEnumerator GetFriendRequests()
     {
-        string token = authManager?.GetToken();
-        string currentUsername = authManager?.GetUsername();
+        string token = SessionManager.GetToken();
+        string currentUsername = JwtUtils.GetUsernameFromToken(token);
 
         if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(currentUsername))
         {
@@ -97,8 +97,8 @@ public class FriendManager : MonoBehaviour
 
     private IEnumerator GetFriends()
     {
-        string token = authManager?.GetToken();
-        string currentUsername = authManager?.GetUsername();
+        string token = SessionManager.GetToken();
+        string currentUsername = JwtUtils.GetUsernameFromToken(token);
 
         if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(currentUsername))
         {
@@ -147,7 +147,7 @@ public class FriendManager : MonoBehaviour
 
     private IEnumerator SendFriendRequestCoroutine(string friendUsername)
     {
-        string token = authManager?.GetToken();
+        string token = SessionManager.GetToken();
 
         if (string.IsNullOrEmpty(token))
         {
@@ -206,7 +206,7 @@ public class FriendManager : MonoBehaviour
 
     private IEnumerator AcceptFriendRequest(string senderId, GameObject requestItem)
     {
-        string token = authManager?.GetToken();
+        string token = SessionManager.GetToken();
 
         if (string.IsNullOrEmpty(token))
         {
@@ -269,8 +269,8 @@ public class FriendManager : MonoBehaviour
 
     private IEnumerator GetAcceptedFriendsCoroutine()
     {
-        string token = authManager?.GetToken();
-        string currentUsername = authManager?.GetUsername();
+        string token = SessionManager.GetToken();
+        string currentUsername = JwtUtils.GetUsernameFromToken(token);
 
         if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(currentUsername))
         {

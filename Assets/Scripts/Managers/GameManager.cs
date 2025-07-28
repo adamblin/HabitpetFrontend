@@ -17,7 +17,7 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        string token = authManager.GetToken();
+        string token = SessionManager.GetToken();
 
         if (string.IsNullOrEmpty(token))
         {
