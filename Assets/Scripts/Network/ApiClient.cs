@@ -63,11 +63,24 @@ public static class ApiClient
 
     private static void HandleResponse<T>(UnityWebRequest request, Action<T> onSuccess, Action<string> onError)
     {
+        long code = request.responseCode;
+
+        if (code == 204)
+        {
+            Debug.Log("[ApiClient] 304 - No Content");
+        }
+
+        if(typeof(T) == typeof(String))
+        {
+            onSuccess?.Invoke((T)(object)request.downloadHandler.text);
+            return;
+        }
+
         if (request.result == UnityWebRequest.Result.Success)
         {
             if (string.IsNullOrEmpty(request.downloadHandler.text))
             {
-                onSuccess?.Invoke(default); // Para voids o status 204
+                onSuccess?.Invoke(default); 
             }
             else
             {
@@ -84,6 +97,8 @@ public static class ApiClient
         }
         else
         {
+            string errorMessage = $"HTTP {(int)code}: {request.error} | Respuesta: {request.downloadHandler.text}";
+            Debug.LogError("[ApiClient] " + errorMessage);
             onError?.Invoke(request.error);
         }
     }

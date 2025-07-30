@@ -70,10 +70,10 @@ public class AuthManager : MonoBehaviour
         string token = SessionManager.GetToken();
         string url = "http://localhost:8080/users/pet";
 
-        yield return ApiClient.Get<string>(url,
-            onSuccess: response =>
+        yield return ApiClient.Get<PetData>(url,
+            onSuccess: pet =>
             {
-                if (string.IsNullOrEmpty(response))
+                if (pet == null)
                 {
                     Debug.Log("El usuario no tiene mascota. Mostrando CreatePet.");
                     uiManager.ShowPanel("CreatePet");
