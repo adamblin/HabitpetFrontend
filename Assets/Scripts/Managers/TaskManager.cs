@@ -1,42 +1,27 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
 using UnityEngine.UI;
 using TMPro;
-using System.Text;
-
-[Serializable]
-public class TaskData
-{
-    public string id;
-    public string name;
-    public int estimatedTime;
-    public string type;
-    public string status;
-}
 
 public class TaskManager : MonoBehaviour
 {
+    [Header("UI Elements")]
     public TMP_InputField taskNameInput;
     public TMP_InputField estimatedTimeInput;
     public TMP_InputField typeInput;
     public Button createTaskButton;
     public Transform taskListContent;
     public GameObject taskPrefab;
-    private string baseUrl = "http://localhost:8080/tasks";
-    public AuthManager authManager;
-    public Text Name;
 
+    [Header("Managers")]
+    public AuthManager authManager;
 
     private void Start()
     {
         if (authManager == null)
-        {
-            Debug.LogError("AuthManager no encontrado en la escena!");
-            return;
-        }
+            authManager = FindObjectOfType<AuthManager>();
+
+        if (authManager == null)
+            Debug.LogError("AuthManager no encontrado.");
 
         if (createTaskButton != null)
         {
@@ -45,108 +30,74 @@ public class TaskManager : MonoBehaviour
         }
         else
         {
-            Debug.LogError("CreateTaskButton no asignado en el Inspector.");
+            Debug.LogError("CreateTaskButton no asignado.");
         }
+
+        if (TaskService.Instance == null)
+            Debug.LogError("TaskService no encontrado. Asegúrate de tenerlo en escena.");
     }
 
     public void CreateTask()
     {
-        string taskName = taskNameInput.text.Trim();
-        string taskType = typeInput.text.Trim();
+        string taskName = taskNameInput?.text.Trim();
+        string taskType = typeInput?.text.Trim();
         int estimatedTime;
 
-        if (string.IsNullOrEmpty(taskName) || string.IsNullOrEmpty(taskType) || !int.TryParse(estimatedTimeInput.text, out estimatedTime))
+        if (string.IsNullOrEmpty(taskName) || string.IsNullOrEmpty(taskType) || !int.TryParse(estimatedTimeInput?.text, out estimatedTime))
         {
-            Debug.Log("Error: Asegúrate de que todos los campos estén llenos y el tiempo estimado sea un número.");
+            Debug.LogWarning("Rellena todos los campos correctamente.");
             return;
         }
 
-        StartCoroutine(SendTaskCreationRequest(taskName, estimatedTime, taskType));
-    }
-
-    private IEnumerator SendTaskCreationRequest(string taskName, int estimatedTime, string taskType)
-    {
         string token = SessionManager.GetToken();
-
         if (string.IsNullOrEmpty(token))
         {
-            Debug.LogError("No token found! Redirecting to login.");
-            yield break;
+            Debug.LogError("Token vacío. Redirigir a login.");
+            return;
         }
 
-        string json = $"{{\"name\":\"{taskName}\",\"estimatedTime\":{estimatedTime},\"type\":\"{taskType}\",\"status\":\"ToDo\"}}";
-        Debug.Log($"Enviando solicitud a {baseUrl} con body: {json} y token: {token}");
-
-        UnityWebRequest request = new UnityWebRequest(baseUrl, "POST");
-        request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
-        request.SetRequestHeader("Authorization", "Bearer " + token);
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
+        StartCoroutine(TaskService.Instance.CreateTask(taskName, estimatedTime, taskType, token, (success, response) =>
         {
-            Debug.Log("Task created successfully!");
-            FetchTasks();
-        }
-        else
-        {
-            Debug.LogError($"Error creando tarea: {request.responseCode} - {request.error}");
-            Debug.LogError($"Respuesta del servidor: {request.downloadHandler.text}");
-        }
+            if (success)
+            {
+                Debug.Log("Tarea creada.");
+                FetchTasks();
+            }
+            else
+            {
+                Debug.LogError("Error creando tarea: " + response);
+            }
+        }));
     }
 
     public void FetchTasks()
     {
-        StartCoroutine(GetTasks());
-    }
-
-    private IEnumerator GetTasks()
-    {
         string token = SessionManager.GetToken();
-
         if (string.IsNullOrEmpty(token))
         {
-            Debug.LogError("No token found! Redirecting to login.");
-            yield break;
+            Debug.LogError("Token vacío. Redirigir a login.");
+            return;
         }
 
-        using (UnityWebRequest request = UnityWebRequest.Get(baseUrl + "/user"))
+        StartCoroutine(TaskService.Instance.GetTasks(token, tasks =>
         {
-            request.SetRequestHeader("Authorization", "Bearer " + token);
-            yield return request.SendWebRequest();
+            foreach (Transform child in taskListContent)
+                Destroy(child.gameObject);
 
-            if (request.result == UnityWebRequest.Result.Success)
-            {
-                Debug.Log("Tasks retrieved successfully!");
-                Debug.Log($"JSON recibido del servidor: {request.downloadHandler.text}");
-
-                TaskData[] tasks = JsonHelper.FromJson<TaskData>(request.downloadHandler.text);
-
-                foreach (Transform child in taskListContent)
-                {
-                    Destroy(child.gameObject);
-                }
-
-                foreach (var task in tasks)
-                {
-                    AddTaskToUI(task);
-                }
-            }
-            else
-            {
-                Debug.LogError($"Error retrieving tasks: {request.responseCode} - {request.error}");
-                Debug.LogError($"Server Response: {request.downloadHandler.text}");
-            }
-        }
+            foreach (var task in tasks)
+                AddTaskToUI(task);
+        },
+        error =>
+        {
+            Debug.LogError("Error obteniendo tareas: " + error);
+        }));
     }
 
     private void AddTaskToUI(TaskData task)
     {
         if (taskPrefab == null || taskListContent == null)
         {
-            Debug.LogError("taskPrefab o taskListContent no está asignado en el Inspector.");
+            Debug.LogError("Prefab o contenedor no asignado.");
             return;
         }
 
@@ -155,7 +106,7 @@ public class TaskManager : MonoBehaviour
 
         if (rectTransform != null)
         {
-            rectTransform.localScale = Vector3.one; // Evita que aparezca más pequeño
+            rectTransform.localScale = Vector3.one;
             rectTransform.anchoredPosition3D = Vector3.zero;
         }
 
@@ -165,42 +116,10 @@ public class TaskManager : MonoBehaviour
         TMP_InputField statusIF = newTask.transform.Find("InputFields/StatusIF")?.GetComponent<TMP_InputField>();
         Text textName = newTask.transform.Find("InputFields/TextName")?.GetComponent<Text>();
 
-        if (taskNameIF == null) Debug.LogError("No se encontró TaskNameIF en el prefab.");
-        if (estimatedTimeIF == null) Debug.LogError("No se encontró TimeIF en el prefab.");
-        if (typeIF == null) Debug.LogError("No se encontró TypeIF en el prefab.");
-        if (statusIF == null) Debug.LogError("No se encontró StatusIF en el prefab.");
-        if (textName == null) Debug.LogError("No se encontró TextName en el prefab.");
-
-        if (taskNameIF != null)
-        {
-            taskNameIF.text = task.name;
-            taskNameIF.textComponent.text = task.name; // Forzar actualización
-        }
-
-        if (estimatedTimeIF != null)
-        {
-            estimatedTimeIF.text = task.estimatedTime.ToString();
-            estimatedTimeIF.textComponent.text = task.estimatedTime.ToString();
-        }
-
-        if (typeIF != null)
-        {
-            typeIF.text = task.type;
-            typeIF.textComponent.text = task.type;
-        }
-
-        if (statusIF != null)
-        {
-            statusIF.text = task.status;
-            statusIF.textComponent.text = task.status;
-        }
-
-        if (textName != null)
-        {
-            textName.text = task.name;
-        }
-
-        Debug.Log($"Task {task.name} added to UI.");
+        if (taskNameIF != null) taskNameIF.text = task.name;
+        if (estimatedTimeIF != null) estimatedTimeIF.text = task.estimatedTime.ToString();
+        if (typeIF != null) typeIF.text = task.type;
+        if (statusIF != null) statusIF.text = task.status;
+        if (textName != null) textName.text = task.name;
     }
-
 }

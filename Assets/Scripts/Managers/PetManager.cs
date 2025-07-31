@@ -45,9 +45,8 @@ public class PetManager : MonoBehaviour
             uiManager.ShowPanel("LoginPage");
             return;
         }
-
-        StartCoroutine(PetService.CreatePet(
-            petName, 
+        StartCoroutine(PetService.Instance.CreatePet(
+            petName,
             () =>
             {
                 Debug.Log("Mascota creada correctamente.");
@@ -58,6 +57,8 @@ public class PetManager : MonoBehaviour
                 Debug.LogError("Error creando mascota: " + error);
             }
         ));
+
+
     }
 
     public void FetcthPet()
@@ -71,7 +72,13 @@ public class PetManager : MonoBehaviour
             return;
         }
 
-        StartCoroutine(PetService.GetPet(
+        if (PetService.Instance == null)
+        {
+            Debug.LogError("PetService.Instance es null. ¿Está en escena o registrado por ServiceBootstrapper?");
+            return;
+        }
+
+        StartCoroutine(PetService.Instance.GetPet(
             token,
             onSuccess: pet =>
             {
@@ -91,4 +98,5 @@ public class PetManager : MonoBehaviour
                 Debug.LogError("Error obteniendo mascota: " + error);
             }));
     }
+
 }

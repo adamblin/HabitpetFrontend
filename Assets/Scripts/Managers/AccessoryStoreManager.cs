@@ -1,24 +1,15 @@
 using System;
-using System.Collections;
 using UnityEngine;
-using UnityEngine.Networking;
 using UnityEngine.UI;
 using TMPro;
 
-[Serializable]
-public class Accessory
-{
-    public string id;
-    public string name;
-    public int coins;
-}
+
 
 public class AccessoryStoreManager : MonoBehaviour
 {
-    public Transform accessoryListContent;  // Content del Scroll View
-    public GameObject accessoryPrefab;      // Prefab del accesorio
-    public Button fetchButton;              // Botón para obtener accesorios
-    private string baseUrl = "http://localhost:8080/accessories";
+    public Transform accessoryListContent;
+    public GameObject accessoryPrefab;
+    public Button fetchButton;
 
     private void Start()
     {
@@ -28,73 +19,55 @@ public class AccessoryStoreManager : MonoBehaviour
         }
         else
         {
-            Debug.LogError("FetchButton no asignado en el Inspector.");
+            Debug.LogError("FetchButton no asignado.");
+        }
+
+        if (AccessoryService.Instance == null)
+        {
+            Debug.LogError("AccessoryService no encontrado en escena.");
         }
     }
 
     public void FetchAccessories()
     {
-        StartCoroutine(GetAccessories());
+        StartCoroutine(AccessoryService.Instance.GetAccessories(OnAccessoriesReceived, OnAccessoriesError));
     }
 
-    private IEnumerator GetAccessories()
+    private void OnAccessoriesReceived(AccessoryData[] accessories)
     {
-        using (UnityWebRequest request = UnityWebRequest.Get(baseUrl))
+        foreach (Transform child in accessoryListContent)
         {
-            yield return request.SendWebRequest();
+            Destroy(child.gameObject);
+        }
 
-            if (request.result == UnityWebRequest.Result.Success)
-            {
-                Debug.Log("Accessories retrieved successfully!");
-                Debug.Log($"Response JSON: {request.downloadHandler.text}");
-
-                // Parsea el JSON correctamente
-                AccessoryArray accessoriesWrapper = JsonUtility.FromJson<AccessoryArray>("{\"items\":" + request.downloadHandler.text + "}");
-
-                if (accessoriesWrapper != null && accessoriesWrapper.items != null)
-                {
-                    // Limpiar la lista antes de añadir nuevos elementos
-                    foreach (Transform child in accessoryListContent)
-                    {
-                        Destroy(child.gameObject);
-                    }
-
-                    // Agregar cada accesorio a la UI
-                    foreach (var accessory in accessoriesWrapper.items)
-                    {
-                        AddAccessoryToUI(accessory);
-                    }
-                }
-                else
-                {
-                    Debug.LogError("Error parsing accessories: response JSON might not be in expected format.");
-                }
-            }
-            else
-            {
-                Debug.LogError($"Error retrieving accessories: {request.responseCode} - {request.error}");
-            }
+        foreach (var accessory in accessories)
+        {
+            AddAccessoryToUI(accessory);
         }
     }
 
-    private void AddAccessoryToUI(Accessory accessory)
+    private void OnAccessoriesError(string error)
+    {
+        Debug.LogError("Error al obtener accesorios: " + error);
+    }
+
+    private void AddAccessoryToUI(AccessoryData accessory)
     {
         if (accessoryPrefab == null || accessoryListContent == null)
         {
-            Debug.LogError("Prefab o Content no están asignados en el Inspector.");
+            Debug.LogError("Prefab o Content no asignado.");
             return;
         }
 
         GameObject newAccessory = Instantiate(accessoryPrefab, accessoryListContent);
-        newAccessory.transform.localScale = Vector3.one; // Evita problemas de tamaño
+        newAccessory.transform.localScale = Vector3.one;
 
-        // Verificar si se están encontrando correctamente los elementos en el prefab
         TMP_Text nameText = newAccessory.transform.Find("NameText")?.GetComponent<TMP_Text>();
         TMP_Text prizeText = newAccessory.transform.Find("PrizeText")?.GetComponent<TMP_Text>();
 
         if (nameText == null || prizeText == null)
         {
-            Debug.LogError("No se encontraron los elementos en el prefab. Revisa la estructura.");
+            Debug.LogError("Elementos del prefab no encontrados.");
             return;
         }
 
@@ -102,12 +75,5 @@ public class AccessoryStoreManager : MonoBehaviour
         prizeText.text = accessory.coins + " Coins";
 
         Debug.Log($"Accesorio añadido a la UI: {accessory.name} - {accessory.coins} Coins");
-    }
-
-
-    [Serializable]
-    private class AccessoryArray
-    {
-        public Accessory[] items;
     }
 }

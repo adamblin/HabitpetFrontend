@@ -4,11 +4,24 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 
-public static class PetService
+public class PetService : MonoBehaviour
 {
+    public static PetService Instance { get; private set; }
+
     private static readonly string baseUrl = "http://localhost:8080/users";
 
-    public static IEnumerator CreatePet(string name, Action onSuccess, Action<string> onError)
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
+    public IEnumerator CreatePet(string name, Action onSuccess, Action<string> onError)
     {
         string token = SessionManager.GetToken();
         string json = $"{{\"name\":\"{name}\"}}";
@@ -40,8 +53,7 @@ public static class PetService
         }
     }
 
-
-    public static IEnumerator GetPet(string token, Action<PetData> onSuccess, Action<string> onError)
+    public IEnumerator GetPet(string token, Action<PetData> onSuccess, Action<string> onError)
     {
         UnityWebRequest request = UnityWebRequest.Get($"{baseUrl}/pet");
         request.SetRequestHeader("Authorization", "Bearer " + token);

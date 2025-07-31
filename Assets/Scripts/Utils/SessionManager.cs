@@ -1,20 +1,28 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public static class SessionManager
 {
+    private const string TokenKey = "authToken";
+    private const string RememberKey = "rememberMe";
+
     private static string sessionToken;
 
     public static void SaveToken(string token, bool remember)
     {
         sessionToken = token;
+
         if (remember)
         {
-            PlayerPrefs.SetString("authToken", token);
-            PlayerPrefs.SetInt("rememberMe", 1);
-            PlayerPrefs.Save();
+            PlayerPrefs.SetString(TokenKey, token);
+            PlayerPrefs.SetInt(RememberKey, 1);
         }
+        else
+        {
+            PlayerPrefs.DeleteKey(TokenKey);
+            PlayerPrefs.SetInt(RememberKey, 0);
+        }
+
+        PlayerPrefs.Save();
     }
 
     public static string GetToken()
@@ -22,22 +30,30 @@ public static class SessionManager
         if (!string.IsNullOrEmpty(sessionToken))
             return sessionToken;
 
-        if (PlayerPrefs.GetInt("rememberMe", 0) == 1)
+        if (PlayerPrefs.GetInt(RememberKey, 0) == 1)
         {
-            sessionToken = PlayerPrefs.GetString("authToken");
+            sessionToken = PlayerPrefs.GetString(TokenKey, null);
             return sessionToken;
         }
 
         return null;
     }
 
+    public static bool HasToken()
+    {
+        return !string.IsNullOrEmpty(GetToken());
+    }
+
+    public static bool IsRemembered()
+    {
+        return PlayerPrefs.GetInt(RememberKey, 0) == 1;
+    }
 
     public static void ClearToken()
     {
         sessionToken = null;
-        PlayerPrefs.DeleteKey("authToken");
-        PlayerPrefs.DeleteKey("rememberMe");
+        PlayerPrefs.DeleteKey(TokenKey);
+        PlayerPrefs.DeleteKey(RememberKey);
         PlayerPrefs.Save();
     }
 }
-

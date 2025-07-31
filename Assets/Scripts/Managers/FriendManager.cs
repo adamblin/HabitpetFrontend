@@ -5,17 +5,6 @@ using UnityEngine.Networking;
 using UnityEngine.UI;
 using TMPro;
 
-
-[Serializable]
-public class FriendData
-{
-    public string userUsername;
-    public string friendUsername;
-    public string userId;
-    public string friendId;
-    public string status;
-}
-
 public class FriendManager : MonoBehaviour
 {
     public TMP_InputField friendNameInput;
@@ -28,296 +17,112 @@ public class FriendManager : MonoBehaviour
     public GameObject requestPrefab;
     public GameObject friendPrefab;
 
-    private string baseUrl = "http://localhost:8080/friendships";
     public AuthManager authManager;
 
     private void Start()
     {
         if (authManager == null)
-        {
-            Debug.LogError("AuthManager no encontrado en la escena!");
-            return;
-        }
+            authManager = FindObjectOfType<AuthManager>();
 
-        if (addFriendButton != null)
-            addFriendButton.onClick.AddListener(SendFriendRequest);
+        if (FriendService.Instance == null)
+            Debug.LogError("FriendService no está presente en la escena.");
 
-        if (fetchRequestsButton != null)
-            fetchRequestsButton.onClick.AddListener(() => StartCoroutine(GetFriendRequests()));
-
-        if (fetchFriendsButton != null)
-            fetchFriendsButton.onClick.AddListener(GetAcceptedFriends);
+        addFriendButton?.onClick.AddListener(SendFriendRequest);
+        fetchRequestsButton?.onClick.AddListener(FetchRequests);
+        fetchFriendsButton?.onClick.AddListener(FetchFriends);
 
         FetchFriendsAndRequests();
-
     }
 
     public void FetchFriendsAndRequests()
     {
-        StartCoroutine(GetFriendRequests());
-        StartCoroutine(GetFriends());
-    }
-
-    private IEnumerator GetFriendRequests()
-    {
-        string token = SessionManager.GetToken();
-        string currentUsername = JwtUtils.GetUsernameFromToken(token);
-
-        if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(currentUsername))
-        {
-            Debug.LogError("No token or username found! Redirecting to login.");
-            yield break;
-        }
-
-        using (UnityWebRequest request = UnityWebRequest.Get($"{baseUrl}/requests"))
-        {
-            request.SetRequestHeader("Authorization", "Bearer " + token);
-            yield return request.SendWebRequest();
-
-            if (request.result == UnityWebRequest.Result.Success)
-            {
-                FriendData[] requests = JsonHelper.FromJson<FriendData>(request.downloadHandler.text);
-
-                foreach (Transform child in requestListContent)
-                    Destroy(child.gameObject);
-
-                foreach (var requestItem in requests)
-                {
-                    if (requestItem.status == "PENDING")
-                        AddRequestToUI(requestItem);
-                }
-            }
-            else
-            {
-                Debug.LogError($"Error obteniendo solicitudes: {request.responseCode} - {request.error}");
-                Debug.LogError($"Respuesta del servidor: {request.downloadHandler.text}");
-            }
-        }
-    }
-
-    private IEnumerator GetFriends()
-    {
-        string token = SessionManager.GetToken();
-        string currentUsername = JwtUtils.GetUsernameFromToken(token);
-
-        if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(currentUsername))
-        {
-            Debug.LogError("No token or username found! Redirecting to login.");
-            yield break;
-        }
-
-        using (UnityWebRequest request = UnityWebRequest.Get($"{baseUrl}"))
-        {
-            request.SetRequestHeader("Authorization", "Bearer " + token);
-            yield return request.SendWebRequest();
-
-            if (request.result == UnityWebRequest.Result.Success)
-            {
-                FriendData[] friends = JsonHelper.FromJson<FriendData>(request.downloadHandler.text);
-
-                foreach (Transform child in friendListContent)
-                    Destroy(child.gameObject);
-
-                foreach (var friend in friends)
-                {
-                    if (friend.status == "ACCEPTED")
-                        AddFriendToUI(friend);
-                }
-            }
-            else
-            {
-                Debug.LogError($"Error obteniendo amigos: {request.responseCode} - {request.error}");
-                Debug.LogError($"Respuesta del servidor: {request.downloadHandler.text}");
-            }
-        }
+        FetchRequests();
+        FetchFriends();
     }
 
     public void SendFriendRequest()
     {
         string friendUsername = friendNameInput.text.Trim();
+        if (string.IsNullOrEmpty(friendUsername)) return;
 
-        if (string.IsNullOrEmpty(friendUsername))
+        string token = SessionManager.GetToken();
+        StartCoroutine(FriendService.Instance.SendFriendRequest(friendUsername, token, (success, response) =>
         {
-            Debug.Log("Error: El nombre del amigo no puede estar vacío.");
-            return;
-        }
-
-        StartCoroutine(SendFriendRequestCoroutine(friendUsername));
+            if (success)
+                Debug.Log("Solicitud enviada.");
+            else
+                Debug.LogWarning("Error enviando solicitud: " + response);
+        }));
     }
 
-    private IEnumerator SendFriendRequestCoroutine(string friendUsername)
+    public void FetchRequests()
     {
         string token = SessionManager.GetToken();
-
-        if (string.IsNullOrEmpty(token))
+        StartCoroutine(FriendService.Instance.GetFriendRequests(token, requests =>
         {
-            Debug.LogError("No token found! Redirecting to login.");
-            yield break;
-        }
-
-        string url = $"{baseUrl}/request/{friendUsername}";
-        UnityWebRequest request = new UnityWebRequest(url, "POST");
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Authorization", "Bearer " + token);
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            Debug.Log($"Solicitud de amistad enviada a {friendUsername}");
-        }
-        else if (request.responseCode == 403)
-        {
-            Debug.LogWarning($"Solicitud ya fue enviada a {friendUsername} o no permitida.");
-        }
-        else
-        {
-            Debug.LogError($"Error enviando solicitud: {request.responseCode} - {request.error}");
-            Debug.LogError($"Respuesta del servidor: {request.downloadHandler.text}");
-        }
+            foreach (Transform t in requestListContent) Destroy(t.gameObject);
+            foreach (var r in requests)
+                if (r.status == "PENDING")
+                    AddRequestToUI(r);
+        },
+        error => Debug.LogError("Error cargando solicitudes: " + error)));
     }
 
-    private void AddRequestToUI(FriendData requestData)
+    public void FetchFriends()
     {
-        GameObject requestItem = Instantiate(requestPrefab, requestListContent);
-
-        var requestText = requestItem.transform.Find("UsernameText")?.GetComponent<TextMeshProUGUI>();
-        if (requestText != null) requestText.text = requestData.userUsername;
-
-        var acceptButton = requestItem.transform.Find("AcceptButton")?.GetComponent<Button>();
-        if (acceptButton != null)
+        string token = SessionManager.GetToken();
+        StartCoroutine(FriendService.Instance.GetFriends(token, friends =>
         {
-            acceptButton.onClick.RemoveAllListeners();
-            acceptButton.onClick.AddListener(() => AcceptFriend(requestData.userUsername, requestItem));
-        }
+            foreach (Transform t in friendListContent) Destroy(t.gameObject);
+            foreach (var f in friends)
+                if (f.status == "ACCEPTED")
+                    AddFriendToUI(f);
+        },
+        error => Debug.LogError("Error cargando amigos: " + error)));
+    }
 
-        var declineButton = requestItem.transform.Find("DeclineButton")?.GetComponent<Button>();
-        if (declineButton != null)
-        {
-            declineButton.onClick.RemoveAllListeners();
-            declineButton.onClick.AddListener(() => Destroy(requestItem));
-        }
+    private void AddRequestToUI(FriendData data)
+    {
+        GameObject go = Instantiate(requestPrefab, requestListContent);
+        var nameText = go.transform.Find("UsernameText")?.GetComponent<TextMeshProUGUI>();
+        if (nameText != null) nameText.text = data.userUsername;
+
+        go.transform.Find("AcceptButton")?.GetComponent<Button>()?.onClick.AddListener(() => AcceptFriend(data.userUsername, go));
+        go.transform.Find("DeclineButton")?.GetComponent<Button>()?.onClick.AddListener(() => Destroy(go));
+    }
+
+    private void AddFriendToUI(FriendData data)
+    {
+        GameObject go = Instantiate(friendPrefab, friendListContent);
+        var nameText = go.transform.Find("FriendText")?.GetComponent<TextMeshProUGUI>();
+        if (nameText != null) nameText.text = data.friendUsername;
     }
 
     private void AcceptFriend(string senderUsername, GameObject requestItem)
     {
-        StartCoroutine(AcceptFriendRequest(senderUsername, requestItem));
-    }
-
-    private IEnumerator AcceptFriendRequest(string senderId, GameObject requestItem)
-    {
         string token = SessionManager.GetToken();
 
-        if (string.IsNullOrEmpty(token))
+        StartCoroutine(FriendService.Instance.AcceptFriend(senderUsername, token, (success, response) =>
         {
-            Debug.LogError("No token found! Redirecting to login.");
-            yield break;
-        }
-
-        using (UnityWebRequest request = UnityWebRequest.PostWwwForm($"{baseUrl}/accept/{senderId}", ""))
-        {
-            request.SetRequestHeader("Authorization", "Bearer " + token);
-            yield return request.SendWebRequest();
-
-            if (request.result == UnityWebRequest.Result.Success)
+            if (success)
             {
-                Debug.Log($"Amistad aceptada con ID: {senderId}");
-
                 string acceptedUsername = requestItem.transform.Find("UsernameText")?.GetComponent<TextMeshProUGUI>()?.text;
-
                 if (!string.IsNullOrEmpty(acceptedUsername))
                 {
-                    FriendData newFriend = new FriendData
+                    AddFriendToUI(new FriendData
                     {
                         userUsername = authManager.GetUsername(),
                         friendUsername = acceptedUsername,
                         status = "ACCEPTED"
-                    };
-
-                    AddFriendToUI(newFriend);
-                }
-                else
-                {
-                    Debug.LogWarning("No se pudo obtener el nombre del usuario aceptado");
+                    });
                 }
 
                 Destroy(requestItem);
             }
             else
             {
-                Debug.LogError($"Error aceptando amigo: {request.responseCode} - {request.error}");
-                Debug.LogError($"Respuesta del servidor: {request.downloadHandler.text}");
+                Debug.LogError("Error al aceptar solicitud: " + response);
             }
-        }
+        }));
     }
-
-    private void AddFriendToUI(FriendData friendData)
-    {
-        GameObject friendItem = Instantiate(friendPrefab, friendListContent);
-        var friendText = friendItem.transform.Find("FriendText")?.GetComponent<TextMeshProUGUI>();
-
-        if (friendText != null)
-            friendText.text = friendData.friendUsername;
-    }
-
-
-    public void GetAcceptedFriends()
-    {
-        StartCoroutine(GetAcceptedFriendsCoroutine());
-    }
-
-
-    private IEnumerator GetAcceptedFriendsCoroutine()
-    {
-        string token = SessionManager.GetToken();
-        string currentUsername = JwtUtils.GetUsernameFromToken(token);
-
-        if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(currentUsername))
-        {
-            Debug.LogError("No token or username found! Redirecting to login.");
-            yield break;
-        }
-
-        using (UnityWebRequest request = UnityWebRequest.Get($"{baseUrl}"))
-        {
-            request.SetRequestHeader("Authorization", "Bearer " + token);
-            yield return request.SendWebRequest();
-
-            // ⬇️ Añade estos logs aquí justo después de recibir la respuesta
-            string rawJson = request.downloadHandler.text;
-            Debug.Log("📥 JSON recibido: " + rawJson);
-
-            FriendData[] friends = JsonHelper.FromJson<FriendData>(rawJson);
-            Debug.Log("✅ Amigos parseados: " + friends.Length);
-
-            foreach (var f in friends)
-            {
-                Debug.Log($"👤 Amigo: {f.friendUsername} | Estado: {f.status}");
-            }
-
-            if (request.result == UnityWebRequest.Result.Success)
-            {
-                // Limpiar lista anterior
-                foreach (Transform child in friendListContent)
-                    Destroy(child.gameObject);
-
-                // Mostrar amigos
-                foreach (var friend in friends)
-                {
-                    if (friend.status == "ACCEPTED")
-                    {
-                        AddFriendToUI(friend);
-                    }
-                }
-            }
-            else
-            {
-                Debug.LogError($"Error obteniendo amigos aceptados: {request.responseCode} - {request.error}");
-                Debug.LogError($"Respuesta del servidor: {request.downloadHandler.text}");
-            }
-        }
-    }
-
-
-
 }
