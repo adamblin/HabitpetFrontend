@@ -23,6 +23,7 @@ public static class SessionManager
         }
 
         PlayerPrefs.Save();
+        Debug.Log($"[SessionManager] Token guardado: {(string.IsNullOrEmpty(token) ? "[vacío]" : token)} | Remember: {remember}");
     }
 
     public static string GetToken()
@@ -32,7 +33,8 @@ public static class SessionManager
 
         if (PlayerPrefs.GetInt(RememberKey, 0) == 1)
         {
-            sessionToken = PlayerPrefs.GetString(TokenKey, null);
+            sessionToken = PlayerPrefs.GetString(TokenKey, "");
+            Debug.Log($"[SessionManager] Token recuperado de PlayerPrefs: {(string.IsNullOrEmpty(sessionToken) ? "[vacío]" : sessionToken)}");
             return sessionToken;
         }
 
@@ -55,5 +57,6 @@ public static class SessionManager
         PlayerPrefs.DeleteKey(TokenKey);
         PlayerPrefs.DeleteKey(RememberKey);
         PlayerPrefs.Save();
+        Debug.Log("[SessionManager] Token limpiado.");
     }
 }

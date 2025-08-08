@@ -4,11 +4,23 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 
-public static class AuthService
+public class AuthService : MonoBehaviour
 {
-    private static readonly string baseUrl = "http://localhost:8080/auth";
+    public static AuthService Instance { get; private set; }
 
-    public static IEnumerator Login(string username, string password, bool rememberMe, Action onSuccess, Action<string> onError)
+    private readonly string baseUrl = "http://localhost:8080/auth";
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+    }
+
+    public IEnumerator Login(string username, string password, bool rememberMe, Action onSuccess, Action<string> onError)
     {
         var loginData = new LoginRequest(username, password);
         string json = JsonUtility.ToJson(loginData);
@@ -27,7 +39,6 @@ public static class AuthService
             Debug.Log("[Unity] Login correcto. TOKEN: " + response.token);
 
             SessionManager.SaveToken(response.token, rememberMe);
-
             onSuccess?.Invoke();
         }
         else
@@ -37,7 +48,7 @@ public static class AuthService
         }
     }
 
-    public static IEnumerator Register(string username, string email, string password, bool rememberMe, Action onSuccess, Action<string> onError)
+    public IEnumerator Register(string username, string email, string password, bool rememberMe, Action onSuccess, Action<string> onError)
     {
         var registerData = new RegisterRequest(username, email, password);
         string json = JsonUtility.ToJson(registerData);
@@ -55,8 +66,7 @@ public static class AuthService
             var response = JsonUtility.FromJson<AuthResponse>(request.downloadHandler.text);
             Debug.Log("[Unity] Registro correcto. TOKEN: " + response.token);
 
-            SessionManager.SaveToken(response.token, rememberMe); 
-
+            SessionManager.SaveToken(response.token, rememberMe);
             onSuccess?.Invoke();
         }
         else

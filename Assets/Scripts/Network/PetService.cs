@@ -8,7 +8,9 @@ public class PetService : MonoBehaviour
 {
     public static PetService Instance { get; private set; }
 
-    private static readonly string baseUrl = "http://localhost:8080/users";
+    private const string baseUrl = "http://localhost:8080/pets";
+    private PetData currentPet;
+    public bool HasLoadedPet => currentPet != null;
 
     private void Awake()
     {
@@ -21,14 +23,9 @@ public class PetService : MonoBehaviour
         Instance = this;
     }
 
-    public IEnumerator CreatePet(string name, Action onSuccess, Action<string> onError)
+    public IEnumerator CreatePet(string petName, string token, Action onSuccess, Action<string> onError)
     {
-        string token = SessionManager.GetToken();
-        string json = $"{{\"name\":\"{name}\"}}";
-
-        Debug.Log("[Unity] Intentando crear mascota...");
-        Debug.Log("Token: " + token);
-        Debug.Log("Body JSON: " + json);
+        string json = $"{{\"name\":\"{petName}\"}}";
 
         UnityWebRequest request = new UnityWebRequest(baseUrl, "POST");
         request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
@@ -40,34 +37,40 @@ public class PetService : MonoBehaviour
 
         if (request.result == UnityWebRequest.Result.Success)
         {
-            Debug.Log("[Unity] Mascota creada correctamente.");
             onSuccess?.Invoke();
         }
         else
         {
-            Debug.LogError("[Unity] Error creando mascota:");
-            Debug.LogError("Código HTTP: " + request.responseCode);
-            Debug.LogError("Error: " + request.error);
-            Debug.LogError("Respuesta del servidor: " + request.downloadHandler.text);
-            onError?.Invoke($"Error {request.responseCode}: {request.downloadHandler.text}");
+            string errorMsg = string.IsNullOrEmpty(request.downloadHandler.text) ? request.error : request.downloadHandler.text;
+            onError?.Invoke(errorMsg);
         }
     }
 
     public IEnumerator GetPet(string token, Action<PetData> onSuccess, Action<string> onError)
     {
-        UnityWebRequest request = UnityWebRequest.Get($"{baseUrl}/pet");
+        UnityWebRequest request = UnityWebRequest.Get(baseUrl + "/user");
         request.SetRequestHeader("Authorization", "Bearer " + token);
 
         yield return request.SendWebRequest();
 
         if (request.result == UnityWebRequest.Result.Success)
         {
-            PetData pet = JsonUtility.FromJson<PetData>(request.downloadHandler.text);
-            onSuccess?.Invoke(pet);
+            try
+            {
+                PetData pet = JsonUtility.FromJson<PetData>(request.downloadHandler.text);
+                currentPet = pet;
+                onSuccess?.Invoke(pet);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Error parseando la mascota: " + e.Message);
+                onError?.Invoke("Error al parsear la mascota");
+            }
         }
         else
         {
-            onError?.Invoke($"Error {request.responseCode}: {request.downloadHandler.text}");
+            string errorMsg = string.IsNullOrEmpty(request.downloadHandler.text) ? request.error : request.downloadHandler.text;
+            onError?.Invoke(errorMsg);
         }
     }
 }

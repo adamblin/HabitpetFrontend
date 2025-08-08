@@ -1,67 +1,82 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class AuthManager : MonoBehaviour
 {
+    [Header("UI Panels")]
     public GameObject loginPage;
     public GameObject registerPage;
     public GameObject petPanel;
     public GameObject createPetPanel;
-    public UIManager uiManager;
 
-    public InputField loginEmail;
+    [Header("UI Elements")]
+    public InputField loginUsername;
     public InputField loginPassword;
+    public Toggle loginRememberMeToggle;
+    public Text loginMessage;
+
     public InputField registerUsername;
     public InputField registerEmail;
     public InputField registerPassword;
-    public Text loginMessage;
-    public Text registerMessage;
-    public Toggle loginRememberMeToggle;
     public Toggle registerRememberMeToggle;
+    public Text registerMessage;
+
+    [Header("Managers")]
+    public UIManager uiManager;
 
     private void Start()
     {
-        string token = SessionManager.GetToken();
+        if (uiManager == null)
+            uiManager = FindObjectOfType<UIManager>();
 
-        if (!string.IsNullOrEmpty(token))
-        {
-            Debug.Log("Token encontrado. Verificando si el usuario tiene mascota...");
-            StartCoroutine(CheckUserHasPet());
-        }
-        else
+        if (string.IsNullOrEmpty(SessionManager.GetToken()))
         {
             Debug.Log("No hay token guardado. Mostrando pantalla de login.");
             uiManager.ShowPanel("Login");
         }
-    }
-
-    public void Register()
-    {
-        StartCoroutine(AuthService.Register(
-            registerUsername.text,
-            registerEmail.text,
-            registerPassword.text,
-            registerRememberMeToggle.isOn,
-            onSuccess: () => {
-                Debug.Log("Registro exitoso");
-                StartCoroutine(CheckUserHasPet());
-            },
-            onError: error => registerMessage.text = "Error: " + error
-        ));
+        else
+        {
+            Debug.Log("Token encontrado. Verificando si el usuario tiene mascota...");
+            StartCoroutine(CheckUserHasPet());
+        }
     }
 
     public void Login()
     {
-        StartCoroutine(AuthService.Login(
-            loginEmail.text,
-            loginPassword.text,
-            loginRememberMeToggle.isOn,
+        string email = loginUsername.text.Trim();
+        string password = loginPassword.text.Trim();
+        bool remember = loginRememberMeToggle?.isOn ?? false;
+
+        StartCoroutine(AuthService.Instance.Login(email, password, remember,
             onSuccess: () => {
-                Debug.Log("Login exitoso");
+                Debug.Log("Login exitoso.");
                 StartCoroutine(CheckUserHasPet());
             },
-            onError: error => loginMessage.text = "Error: " + error
+            onError: error => {
+                Debug.LogError("Error en login: " + error);
+                if (loginMessage != null) loginMessage.text = "Error: " + error;
+            }
+        ));
+    }
+
+    public void Register()
+    {
+        string username = registerUsername.text.Trim();
+        string email = registerEmail.text.Trim();
+        string password = registerPassword.text.Trim();
+        bool remember = registerRememberMeToggle?.isOn ?? false;
+
+        StartCoroutine(AuthService.Instance.Register(username, email, password, remember,
+            onSuccess: () => {
+                Debug.Log("Registro exitoso.");
+                StartCoroutine(CheckUserHasPet());
+            },
+            onError: error => {
+                Debug.LogError("Error en registro: " + error);
+                if (registerMessage != null) registerMessage.text = "Error: " + error;
+            }
         ));
     }
 
@@ -75,7 +90,7 @@ public class AuthManager : MonoBehaviour
             {
                 if (pet == null)
                 {
-                    Debug.Log("El usuario no tiene mascota. Mostrando CreatePet.");
+                    Debug.Log("Usuario sin mascota. Mostrando CreatePet.");
                     uiManager.ShowPanel("CreatePet");
                 }
                 else
@@ -86,9 +101,10 @@ public class AuthManager : MonoBehaviour
             },
             onError: error =>
             {
-                Debug.LogError("Error verificando mascota: " + error);
+                Debug.LogError("Error al verificar mascota: " + error);
                 uiManager.ShowPanel("Login");
-            });
+            }
+        );
     }
 
     public void Logout()

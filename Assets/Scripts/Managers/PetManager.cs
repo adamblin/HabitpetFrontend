@@ -45,20 +45,20 @@ public class PetManager : MonoBehaviour
             uiManager.ShowPanel("LoginPage");
             return;
         }
+
         StartCoroutine(PetService.Instance.CreatePet(
             petName,
-            () =>
+            token,
+            onSuccess: () =>
             {
                 Debug.Log("Mascota creada correctamente.");
                 uiManager.ShowPanel("PetPanel");
             },
-            error =>
+            onError: error =>
             {
                 Debug.LogError("Error creando mascota: " + error);
             }
         ));
-
-
     }
 
     public void FetcthPet()
@@ -96,7 +96,7 @@ public class PetManager : MonoBehaviour
             onError: error =>
             {
                 Debug.LogError("Error obteniendo mascota: " + error);
-            }));
+            }
+        ));
     }
-
 }

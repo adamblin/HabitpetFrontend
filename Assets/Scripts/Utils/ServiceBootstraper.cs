@@ -4,7 +4,7 @@ public class ServiceBootstrapper : MonoBehaviour
 {
     void Awake()
     {
-        EnsureService<AuthManager>("AuthManager");
+        EnsureService<AuthService>("AuthService");
         EnsureService<TaskService>("TaskService");
         EnsureService<AccessoryService>("AccessoryService");
         EnsureService<FriendService>("FriendService");
