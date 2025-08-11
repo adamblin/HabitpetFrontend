@@ -18,12 +18,10 @@ public class PetManager : MonoBehaviour
 
     private void Start()
     {
-        if (authManager == null)
-            authManager = FindObjectOfType<AuthManager>();
-
+        if (authManager == null) authManager = FindObjectOfType<AuthManager>();
         if (authManager == null)
         {
-            Debug.LogError("AuthManager no encontrado en la escena.");
+            Debug.LogWarning("AuthManager no encontrado en la escena.");
             return;
         }
     }
@@ -31,7 +29,6 @@ public class PetManager : MonoBehaviour
     public void CreatePet()
     {
         string petName = petNameInput.text.Trim();
-
         if (string.IsNullOrEmpty(petName))
         {
             Debug.LogWarning("El nombre de la mascota no puede estar vacío.");
@@ -41,8 +38,8 @@ public class PetManager : MonoBehaviour
         string token = SessionManager.GetToken();
         if (string.IsNullOrEmpty(token))
         {
-            Debug.LogError("No hay token disponible. Redirigiendo al login...");
-            uiManager.ShowPanel("LoginPage");
+            Debug.LogWarning("Sin token. Redirigiendo a Login.");
+            uiManager.ShowPanel("Login");
             return;
         }
 
@@ -56,25 +53,24 @@ public class PetManager : MonoBehaviour
             },
             onError: error =>
             {
-                Debug.LogError("Error creando mascota: " + error);
+                Debug.LogWarning("Error creando mascota: " + error);
             }
         ));
     }
 
-    public void FetcthPet()
+    public void FetchPet() 
     {
         string token = SessionManager.GetToken();
-
         if (string.IsNullOrEmpty(token))
         {
-            Debug.LogError("No hay token disponible para obtener la mascota.");
-            uiManager.ShowPanel("LoginPage");
+            Debug.LogWarning("Sin token para obtener mascota.");
+            uiManager.ShowPanel("Login");
             return;
         }
 
         if (PetService.Instance == null)
         {
-            Debug.LogError("PetService.Instance es null. ¿Está en escena o registrado por ServiceBootstrapper?");
+            Debug.LogWarning("PetService.Instance es null. ¿Está en escena?");
             return;
         }
 
@@ -82,20 +78,21 @@ public class PetManager : MonoBehaviour
             token,
             onSuccess: pet =>
             {
-                Debug.Log($"Mascota recibida: {pet.name}");
+                if (pet == null)
+                {
+                    uiManager.ShowPanel("CreatePet");
+                    return;
+                }
 
-                if (petNameText != null)
-                    petNameText.text = pet.name;
+                if (petNameText != null) petNameText.text = pet.name;
+                if (hungrynessSlider != null) hungrynessSlider.value = pet.hungryness;
+                if (cleanlinessSlider != null) cleanlinessSlider.value = pet.cleanliness;
 
-                if (hungrynessSlider != null)
-                    hungrynessSlider.value = pet.hungryness;
-
-                if (cleanlinessSlider != null)
-                    cleanlinessSlider.value = pet.cleanliness;
+                Debug.Log("Mascota recibida: " + pet.name);
             },
             onError: error =>
             {
-                Debug.LogError("Error obteniendo mascota: " + error);
+                Debug.LogWarning("Error obteniendo mascota: " + error);
             }
         ));
     }

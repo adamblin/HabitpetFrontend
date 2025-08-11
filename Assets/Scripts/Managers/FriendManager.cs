@@ -1,7 +1,5 @@
 using System;
-using System.Collections;
 using UnityEngine;
-using UnityEngine.Networking;
 using UnityEngine.UI;
 using TMPro;
 
@@ -21,11 +19,8 @@ public class FriendManager : MonoBehaviour
 
     private void Start()
     {
-        if (authManager == null)
-            authManager = FindObjectOfType<AuthManager>();
-
-        if (FriendService.Instance == null)
-            Debug.LogError("FriendService no está presente en la escena.");
+        if (authManager == null) authManager = FindObjectOfType<AuthManager>();
+        if (FriendService.Instance == null) Debug.LogWarning("FriendService no está presente en la escena.");
 
         addFriendButton?.onClick.AddListener(SendFriendRequest);
         fetchRequestsButton?.onClick.AddListener(FetchRequests);
@@ -42,48 +37,60 @@ public class FriendManager : MonoBehaviour
 
     public void SendFriendRequest()
     {
-        string friendUsername = friendNameInput.text.Trim();
+        var friendUsername = friendNameInput.text.Trim();
         if (string.IsNullOrEmpty(friendUsername)) return;
 
-        string token = SessionManager.GetToken();
+        var token = SessionManager.GetToken();
+        if (string.IsNullOrEmpty(token))
+        {
+            Debug.LogWarning("Token vacío al enviar solicitud.");
+            return;
+        }
+
         StartCoroutine(FriendService.Instance.SendFriendRequest(friendUsername, token, (success, response) =>
         {
-            if (success)
-                Debug.Log("Solicitud enviada.");
-            else
-                Debug.LogWarning("Error enviando solicitud: " + response);
+            if (success) Debug.Log("Solicitud enviada.");
+            else Debug.LogWarning("Error enviando solicitud: " + response);
         }));
     }
 
     public void FetchRequests()
     {
-        string token = SessionManager.GetToken();
+        var token = SessionManager.GetToken();
+        if (string.IsNullOrEmpty(token))
+        {
+            Debug.LogWarning("Token vacío al cargar solicitudes.");
+            return;
+        }
+
         StartCoroutine(FriendService.Instance.GetFriendRequests(token, requests =>
         {
             foreach (Transform t in requestListContent) Destroy(t.gameObject);
-            foreach (var r in requests)
-                if (r.status == "PENDING")
-                    AddRequestToUI(r);
+            foreach (var r in requests) if (r.status == "PENDING") AddRequestToUI(r);
         },
-        error => Debug.LogError("Error cargando solicitudes: " + error)));
+        error => Debug.LogWarning("Error cargando solicitudes: " + error)));
     }
 
     public void FetchFriends()
     {
-        string token = SessionManager.GetToken();
+        var token = SessionManager.GetToken();
+        if (string.IsNullOrEmpty(token))
+        {
+            Debug.LogWarning("Token vacío al cargar amigos.");
+            return;
+        }
+
         StartCoroutine(FriendService.Instance.GetFriends(token, friends =>
         {
             foreach (Transform t in friendListContent) Destroy(t.gameObject);
-            foreach (var f in friends)
-                if (f.status == "ACCEPTED")
-                    AddFriendToUI(f);
+            foreach (var f in friends) if (f.status == "ACCEPTED") AddFriendToUI(f);
         },
-        error => Debug.LogError("Error cargando amigos: " + error)));
+        error => Debug.LogWarning("Error cargando amigos: " + error)));
     }
 
     private void AddRequestToUI(FriendData data)
     {
-        GameObject go = Instantiate(requestPrefab, requestListContent);
+        var go = Instantiate(requestPrefab, requestListContent);
         var nameText = go.transform.Find("UsernameText")?.GetComponent<TextMeshProUGUI>();
         if (nameText != null) nameText.text = data.userUsername;
 
@@ -93,14 +100,19 @@ public class FriendManager : MonoBehaviour
 
     private void AddFriendToUI(FriendData data)
     {
-        GameObject go = Instantiate(friendPrefab, friendListContent);
+        var go = Instantiate(friendPrefab, friendListContent);
         var nameText = go.transform.Find("FriendText")?.GetComponent<TextMeshProUGUI>();
         if (nameText != null) nameText.text = data.friendUsername;
     }
 
     private void AcceptFriend(string senderUsername, GameObject requestItem)
     {
-        string token = SessionManager.GetToken();
+        var token = SessionManager.GetToken();
+        if (string.IsNullOrEmpty(token))
+        {
+            Debug.LogWarning("Token vacío al aceptar solicitud.");
+            return;
+        }
 
         StartCoroutine(FriendService.Instance.AcceptFriend(senderUsername, token, (success, response) =>
         {
@@ -111,17 +123,16 @@ public class FriendManager : MonoBehaviour
                 {
                     AddFriendToUI(new FriendData
                     {
-                        userUsername = authManager.GetUsername(),
+                        userUsername = authManager?.GetUsername(),
                         friendUsername = acceptedUsername,
                         status = "ACCEPTED"
                     });
                 }
-
                 Destroy(requestItem);
             }
             else
             {
-                Debug.LogError("Error al aceptar solicitud: " + response);
+                Debug.LogWarning("Error al aceptar solicitud: " + response);
             }
         }));
     }

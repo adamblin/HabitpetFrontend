@@ -1,76 +1,59 @@
 using System;
 using System.Collections;
-using System.Text;
 using UnityEngine;
-using UnityEngine.Networking;
 
 public class PetService : MonoBehaviour
 {
     public static PetService Instance { get; private set; }
 
-    private const string baseUrl = "http://localhost:8080/pets";
+    private static string CreateUserPetUrl => Endpoints.CreateUserPet();  
+    private static string CurrentUserPetUrl => Endpoints.CurrentUserPet();  
+
     private PetData currentPet;
     public bool HasLoadedPet => currentPet != null;
 
+    [Serializable]
+    private class PetCreateDto
+    {
+        public string name;
+        public PetCreateDto(string name) { this.name = name; }
+    }
+
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
 
     public IEnumerator CreatePet(string petName, string token, Action onSuccess, Action<string> onError)
     {
-        string json = $"{{\"name\":\"{petName}\"}}";
+        if (string.IsNullOrWhiteSpace(petName)) { onError?.Invoke("El nombre de la mascota no puede estar vacío."); yield break; }
+        if (string.IsNullOrEmpty(token)) { onError?.Invoke("Token vacío o nulo."); yield break; }
 
-        UnityWebRequest request = new UnityWebRequest(baseUrl, "POST");
-        request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
-        request.SetRequestHeader("Authorization", "Bearer " + token);
+        var dto = new PetCreateDto(petName);
 
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            onSuccess?.Invoke();
-        }
-        else
-        {
-            string errorMsg = string.IsNullOrEmpty(request.downloadHandler.text) ? request.error : request.downloadHandler.text;
-            onError?.Invoke(errorMsg);
-        }
+        yield return ApiClient.Post<string>(
+            url: CreateUserPetUrl,
+            data: dto,
+            onSuccess: _ => onSuccess?.Invoke(),
+            onError: err => onError?.Invoke(err),
+            withAuth: true
+        );
     }
 
     public IEnumerator GetPet(string token, Action<PetData> onSuccess, Action<string> onError)
     {
-        UnityWebRequest request = UnityWebRequest.Get(baseUrl + "/user");
-        request.SetRequestHeader("Authorization", "Bearer " + token);
+        if (string.IsNullOrEmpty(token)) { onError?.Invoke("Token vacío o nulo."); yield break; }
 
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            try
+        yield return ApiClient.Get<PetData>(
+            url: CurrentUserPetUrl,
+            onSuccess: pet =>
             {
-                PetData pet = JsonUtility.FromJson<PetData>(request.downloadHandler.text);
-                currentPet = pet;
+                currentPet = pet; 
                 onSuccess?.Invoke(pet);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError("Error parseando la mascota: " + e.Message);
-                onError?.Invoke("Error al parsear la mascota");
-            }
-        }
-        else
-        {
-            string errorMsg = string.IsNullOrEmpty(request.downloadHandler.text) ? request.error : request.downloadHandler.text;
-            onError?.Invoke(errorMsg);
-        }
+            },
+            onError: onError,
+            withAuth: true
+        );
     }
 }

@@ -1,14 +1,13 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 public class AuthManager : MonoBehaviour
 {
     [Header("UI Panels")]
-    public GameObject loginPage;
+    public GameObject loginPage;     
     public GameObject registerPage;
-    public GameObject petPanel;
+    public GameObject petPanel;      
     public GameObject createPetPanel;
 
     [Header("UI Elements")]
@@ -28,80 +27,84 @@ public class AuthManager : MonoBehaviour
 
     private void Start()
     {
-        if (uiManager == null)
-            uiManager = FindObjectOfType<UIManager>();
+        if (uiManager == null) uiManager = FindObjectOfType<UIManager>();
 
-        if (string.IsNullOrEmpty(SessionManager.GetToken()))
+        var token = SessionManager.GetToken();
+        if (string.IsNullOrEmpty(token))
         {
-            Debug.Log("No hay token guardado. Mostrando pantalla de login.");
+            Debug.Log("Sin token. Mostrando Login.");
             uiManager.ShowPanel("Login");
         }
         else
         {
-            Debug.Log("Token encontrado. Verificando si el usuario tiene mascota...");
+            Debug.Log("Token presente. Comprobando mascota…");
             StartCoroutine(CheckUserHasPet());
         }
     }
 
     public void Login()
     {
-        string email = loginUsername.text.Trim();
-        string password = loginPassword.text.Trim();
-        bool remember = loginRememberMeToggle?.isOn ?? false;
+        var email = loginUsername.text.Trim();
+        var password = loginPassword.text.Trim();
+        var remember = loginRememberMeToggle?.isOn ?? false;
 
         StartCoroutine(AuthService.Instance.Login(email, password, remember,
             onSuccess: () => {
-                Debug.Log("Login exitoso.");
+                Debug.Log("Login OK.");
                 StartCoroutine(CheckUserHasPet());
             },
-            onError: error => {
-                Debug.LogError("Error en login: " + error);
-                if (loginMessage != null) loginMessage.text = "Error: " + error;
+            onError: err => {
+                Debug.LogWarning("Error en login: " + err);
+                if (loginMessage != null) loginMessage.text = "Error: " + err;
             }
         ));
     }
 
     public void Register()
     {
-        string username = registerUsername.text.Trim();
-        string email = registerEmail.text.Trim();
-        string password = registerPassword.text.Trim();
-        bool remember = registerRememberMeToggle?.isOn ?? false;
+        var username = registerUsername.text.Trim();
+        var email = registerEmail.text.Trim();
+        var password = registerPassword.text.Trim();
+        var remember = registerRememberMeToggle?.isOn ?? false;
 
         StartCoroutine(AuthService.Instance.Register(username, email, password, remember,
             onSuccess: () => {
-                Debug.Log("Registro exitoso.");
+                Debug.Log("Registro OK.");
                 StartCoroutine(CheckUserHasPet());
             },
-            onError: error => {
-                Debug.LogError("Error en registro: " + error);
-                if (registerMessage != null) registerMessage.text = "Error: " + error;
+            onError: err => {
+                Debug.LogWarning("Error en registro: " + err);
+                if (registerMessage != null) registerMessage.text = "Error: " + err;
             }
         ));
     }
 
     private IEnumerator CheckUserHasPet()
     {
-        string token = SessionManager.GetToken();
-        string url = "http://localhost:8080/users/pet";
+        var token = SessionManager.GetToken();
+        if (string.IsNullOrEmpty(token))
+        {
+            uiManager.ShowPanel("Login");
+            yield break;
+        }
 
-        yield return ApiClient.Get<PetData>(url,
+        yield return PetService.Instance.GetPet(token,
             onSuccess: pet =>
             {
                 if (pet == null)
                 {
-                    Debug.Log("Usuario sin mascota. Mostrando CreatePet.");
+                    Debug.Log("Sin mascota. Mostrar CreatePet.");
                     uiManager.ShowPanel("CreatePet");
                 }
                 else
                 {
-                    Debug.Log("Mascota encontrada. Mostrando PetPanel.");
+                    Debug.Log("Mascota encontrada. Mostrar PetPanel.");
                     uiManager.ShowPanel("PetPanel");
                 }
             },
-            onError: error =>
+            onError: err =>
             {
-                Debug.LogError("Error al verificar mascota: " + error);
+                Debug.LogWarning("Error al verificar mascota: " + err);
                 uiManager.ShowPanel("Login");
             }
         );
@@ -113,8 +116,5 @@ public class AuthManager : MonoBehaviour
         uiManager.ShowPanel("Login");
     }
 
-    public string GetUsername()
-    {
-        return JwtUtils.GetUsernameFromToken(SessionManager.GetToken());
-    }
+    public string GetUsername() => JwtUtils.GetUsernameFromToken(SessionManager.GetToken());
 }

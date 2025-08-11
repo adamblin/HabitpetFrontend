@@ -1,83 +1,93 @@
 using System;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Networking;
 
 public class FriendService : MonoBehaviour
 {
     public static FriendService Instance { get; private set; }
 
-    private string baseUrl = "http://localhost:8080/friendships";
+    private static string FriendsListUrl => Endpoints.FriendsList();
+    private static string FriendRequestsUrl => Endpoints.FriendRequests();
+    private static string RequestFriendUrl(string u) => Endpoints.RequestFriend(u);
+    private static string AcceptFriendUrl(string u) => Endpoints.AcceptFriend(u);
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
 
     public IEnumerator SendFriendRequest(string friendUsername, string token, Action<bool, string> callback)
     {
-        string url = $"{baseUrl}/request/{friendUsername}";
+        if (string.IsNullOrWhiteSpace(friendUsername))
+        {
+            callback?.Invoke(false, "El nombre de usuario no puede estar vacío.");
+            yield break;
+        }
+        if (string.IsNullOrEmpty(token))
+        {
+            callback?.Invoke(false, "Token vacío o nulo.");
+            yield break;
+        }
 
-        UnityWebRequest request = new UnityWebRequest(url, "POST");
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Authorization", "Bearer " + token);
-
-        yield return request.SendWebRequest();
-
-        bool success = request.result == UnityWebRequest.Result.Success;
-        callback?.Invoke(success, request.downloadHandler.text);
+        yield return ApiClient.PostNoBody(
+            url: RequestFriendUrl(friendUsername),
+            onSuccess: _ => callback?.Invoke(true, null),
+            onError: err => callback?.Invoke(false, err),
+            withAuth: true
+        );
     }
 
     public IEnumerator GetFriendRequests(string token, Action<FriendData[]> onSuccess, Action<string> onError)
     {
-        UnityWebRequest request = UnityWebRequest.Get($"{baseUrl}/requests");
-        request.SetRequestHeader("Authorization", "Bearer " + token);
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
+        if (string.IsNullOrEmpty(token))
         {
-            FriendData[] data = JsonHelper.FromJson<FriendData>(request.downloadHandler.text);
-            onSuccess?.Invoke(data);
+            onError?.Invoke("Token vacío o nulo.");
+            yield break;
         }
-        else
-        {
-            onError?.Invoke(request.downloadHandler.text);
-        }
+
+        yield return ApiClient.GetArray<FriendData>(
+            url: FriendRequestsUrl,
+            onSuccess: onSuccess,
+            onError: onError,
+            withAuth: true
+        );
     }
 
     public IEnumerator GetFriends(string token, Action<FriendData[]> onSuccess, Action<string> onError)
     {
-        UnityWebRequest request = UnityWebRequest.Get(baseUrl);
-        request.SetRequestHeader("Authorization", "Bearer " + token);
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
+        if (string.IsNullOrEmpty(token))
         {
-            FriendData[] data = JsonHelper.FromJson<FriendData>(request.downloadHandler.text);
-            onSuccess?.Invoke(data);
+            onError?.Invoke("Token vacío o nulo.");
+            yield break;
         }
-        else
-        {
-            onError?.Invoke(request.downloadHandler.text);
-        }
+
+        yield return ApiClient.GetArray<FriendData>(
+            url: FriendsListUrl,
+            onSuccess: onSuccess,
+            onError: onError,
+            withAuth: true
+        );
     }
 
     public IEnumerator AcceptFriend(string senderUsername, string token, Action<bool, string> callback)
     {
-        string url = $"{baseUrl}/accept/{senderUsername}";
-        UnityWebRequest request = UnityWebRequest.PostWwwForm(url, "");
-        request.SetRequestHeader("Authorization", "Bearer " + token);
+        if (string.IsNullOrWhiteSpace(senderUsername))
+        {
+            callback?.Invoke(false, "El remitente no puede estar vacío.");
+            yield break;
+        }
+        if (string.IsNullOrEmpty(token))
+        {
+            callback?.Invoke(false, "Token vacío o nulo.");
+            yield break;
+        }
 
-        yield return request.SendWebRequest();
-
-        bool success = request.result == UnityWebRequest.Result.Success;
-        callback?.Invoke(success, request.downloadHandler.text);
+        yield return ApiClient.PostNoBody(
+            url: AcceptFriendUrl(senderUsername),
+            onSuccess: _ => callback?.Invoke(true, null),
+            onError: err => callback?.Invoke(false, err),
+            withAuth: true
+        );
     }
 }

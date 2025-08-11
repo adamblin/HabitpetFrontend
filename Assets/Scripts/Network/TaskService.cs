@@ -1,57 +1,73 @@
 using System;
 using System.Collections;
-using System.Text;
 using UnityEngine;
-using UnityEngine.Networking;
 
 public class TaskService : MonoBehaviour
 {
     public static TaskService Instance { get; private set; }
 
-    private string baseUrl = "http://localhost:8080/tasks";
+    private static string TasksBase => Endpoints.Tasks;              
+    private static string TasksOfUserUrl => Endpoints.TasksOfCurrentUser(); 
+
+    [Serializable]
+    private class TaskCreateDto
+    {
+        public string name;
+        public int estimatedTime;
+        public string type;
+        public string status;
+        public TaskCreateDto(string name, int estimatedTime, string type, string status)
+        {
+            this.name = name;
+            this.estimatedTime = estimatedTime;
+            this.type = type;
+            this.status = status;
+        }
+    }
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
 
     public IEnumerator CreateTask(string taskName, int estimatedTime, string taskType, string token, Action<bool, string> callback)
     {
-        string json = $"{{\"name\":\"{taskName}\",\"estimatedTime\":{estimatedTime},\"type\":\"{taskType}\",\"status\":\"ToDo\"}}";
+        if (string.IsNullOrWhiteSpace(taskName) || string.IsNullOrWhiteSpace(taskType))
+        {
+            callback?.Invoke(false, "Nombre y tipo son obligatorios.");
+            yield break;
+        }
+        if (string.IsNullOrEmpty(token))
+        {
+            callback?.Invoke(false, "Token vacío o nulo.");
+            yield break;
+        }
 
-        UnityWebRequest request = new UnityWebRequest(baseUrl, "POST");
-        request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
-        request.SetRequestHeader("Authorization", "Bearer " + token);
+        var dto = new TaskCreateDto(taskName, estimatedTime, taskType, "ToDo");
 
-        yield return request.SendWebRequest();
-
-        bool success = request.result == UnityWebRequest.Result.Success;
-        callback?.Invoke(success, request.downloadHandler.text);
+        yield return ApiClient.Post<string>(
+            url: TasksBase,
+            data: dto,
+            onSuccess: _ => callback?.Invoke(true, null),
+            onError: err => callback?.Invoke(false, err),
+            withAuth: true
+        );
     }
 
     public IEnumerator GetTasks(string token, Action<TaskData[]> onSuccess, Action<string> onError)
     {
-        UnityWebRequest request = UnityWebRequest.Get(baseUrl + "/user");
-        request.SetRequestHeader("Authorization", "Bearer " + token);
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
+        if (string.IsNullOrEmpty(token))
         {
-            TaskData[] tasks = JsonHelper.FromJson<TaskData>(request.downloadHandler.text);
-            onSuccess?.Invoke(tasks);
+            onError?.Invoke("Token vacío o nulo.");
+            yield break;
         }
-        else
-        {
-            onError?.Invoke(request.downloadHandler.text);
-        }
+
+        yield return ApiClient.GetArray<TaskData>(
+            url: TasksOfUserUrl,
+            onSuccess: onSuccess,
+            onError: onError,
+            withAuth: true
+        );
     }
 }

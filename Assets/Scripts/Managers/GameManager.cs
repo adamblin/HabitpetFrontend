@@ -1,7 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -10,23 +7,21 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         authManager = FindObjectOfType<AuthManager>();
-
         if (authManager == null)
         {
-            Debug.LogError("AuthManager no trobat! Assegura't que està a la escena.");
+            Debug.LogWarning("AuthManager no encontrado en la escena.");
             return;
         }
 
         string token = SessionManager.GetToken();
-
         if (string.IsNullOrEmpty(token))
         {
-            Debug.Log("No hi ha cap token. Mostrant pantalla de login.");
+            Debug.Log("Sin token. Mostrar Login.");
             authManager.uiManager.ShowPanel("Login"); 
         }
         else
         {
-            Debug.Log("Token trobat. L'usuari està logejat.");
+            Debug.Log("Token presente. Usuario logueado.");
         }
     }
 }

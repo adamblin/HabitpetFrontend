@@ -17,11 +17,8 @@ public class TaskManager : MonoBehaviour
 
     private void Start()
     {
-        if (authManager == null)
-            authManager = FindObjectOfType<AuthManager>();
-
-        if (authManager == null)
-            Debug.LogError("AuthManager no encontrado.");
+        if (authManager == null) authManager = FindObjectOfType<AuthManager>();
+        if (authManager == null) Debug.LogWarning("AuthManager no encontrado.");
 
         if (createTaskButton != null)
         {
@@ -30,11 +27,11 @@ public class TaskManager : MonoBehaviour
         }
         else
         {
-            Debug.LogError("CreateTaskButton no asignado.");
+            Debug.LogWarning("CreateTaskButton no asignado.");
         }
 
         if (TaskService.Instance == null)
-            Debug.LogError("TaskService no encontrado. Asegúrate de tenerlo en escena.");
+            Debug.LogWarning("TaskService no encontrado. Asegúrate de tenerlo en escena.");
     }
 
     public void CreateTask()
@@ -52,7 +49,7 @@ public class TaskManager : MonoBehaviour
         string token = SessionManager.GetToken();
         if (string.IsNullOrEmpty(token))
         {
-            Debug.LogError("Token vacío. Redirigir a login.");
+            Debug.LogWarning("Token vacío. Redirigir a login.");
             return;
         }
 
@@ -65,7 +62,7 @@ public class TaskManager : MonoBehaviour
             }
             else
             {
-                Debug.LogError("Error creando tarea: " + response);
+                Debug.LogWarning("Error creando tarea: " + response);
             }
         }));
     }
@@ -75,46 +72,39 @@ public class TaskManager : MonoBehaviour
         string token = SessionManager.GetToken();
         if (string.IsNullOrEmpty(token))
         {
-            Debug.LogError("Token vacío. Redirigir a login.");
+            Debug.LogWarning("Token vacío. Redirigir a login.");
             return;
         }
 
         StartCoroutine(TaskService.Instance.GetTasks(token, tasks =>
         {
-            foreach (Transform child in taskListContent)
-                Destroy(child.gameObject);
-
-            foreach (var task in tasks)
-                AddTaskToUI(task);
+            foreach (Transform child in taskListContent) Destroy(child.gameObject);
+            foreach (var task in tasks) AddTaskToUI(task);
         },
-        error =>
-        {
-            Debug.LogError("Error obteniendo tareas: " + error);
-        }));
+        error => Debug.LogWarning("Error obteniendo tareas: " + error)));
     }
 
     private void AddTaskToUI(TaskData task)
     {
         if (taskPrefab == null || taskListContent == null)
         {
-            Debug.LogError("Prefab o contenedor no asignado.");
+            Debug.LogWarning("Prefab o contenedor no asignado.");
             return;
         }
 
         GameObject newTask = Instantiate(taskPrefab, taskListContent);
-        RectTransform rectTransform = newTask.GetComponent<RectTransform>();
-
+        var rectTransform = newTask.GetComponent<RectTransform>();
         if (rectTransform != null)
         {
             rectTransform.localScale = Vector3.one;
             rectTransform.anchoredPosition3D = Vector3.zero;
         }
 
-        TMP_InputField taskNameIF = newTask.transform.Find("InputFields/TaskNameIF")?.GetComponent<TMP_InputField>();
-        TMP_InputField estimatedTimeIF = newTask.transform.Find("InputFields/TimeIF")?.GetComponent<TMP_InputField>();
-        TMP_InputField typeIF = newTask.transform.Find("InputFields/TypeIF")?.GetComponent<TMP_InputField>();
-        TMP_InputField statusIF = newTask.transform.Find("InputFields/StatusIF")?.GetComponent<TMP_InputField>();
-        Text textName = newTask.transform.Find("InputFields/TextName")?.GetComponent<Text>();
+        var taskNameIF = newTask.transform.Find("InputFields/TaskNameIF")?.GetComponent<TMP_InputField>();
+        var estimatedTimeIF = newTask.transform.Find("InputFields/TimeIF")?.GetComponent<TMP_InputField>();
+        var typeIF = newTask.transform.Find("InputFields/TypeIF")?.GetComponent<TMP_InputField>();
+        var statusIF = newTask.transform.Find("InputFields/StatusIF")?.GetComponent<TMP_InputField>();
+        var textName = newTask.transform.Find("InputFields/TextName")?.GetComponent<Text>();
 
         if (taskNameIF != null) taskNameIF.text = task.name;
         if (estimatedTimeIF != null) estimatedTimeIF.text = task.estimatedTime.ToString();
