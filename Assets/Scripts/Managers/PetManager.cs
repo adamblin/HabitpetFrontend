@@ -8,9 +8,9 @@ public class PetManager : MonoBehaviour
 {
     [Header("UI")]
     public InputField petNameInput;
-    public Text petNameText;
     public Slider hungrynessSlider;
     public Slider cleanlinessSlider;
+    public Slider happynessSlider;
 
     [Header("Managers")]
     public UIManager uiManager;
@@ -84,9 +84,9 @@ public class PetManager : MonoBehaviour
                     return;
                 }
 
-                if (petNameText != null) petNameText.text = pet.name;
-                if (hungrynessSlider != null) hungrynessSlider.value = pet.hungryness;
+                if (hungrynessSlider != null) hungrynessSlider.value = pet.satiated;
                 if (cleanlinessSlider != null) cleanlinessSlider.value = pet.cleanliness;
+                if (happynessSlider != null) happynessSlider.value = pet.happyness;
 
                 Debug.Log("Mascota recibida: " + pet.name);
             },
